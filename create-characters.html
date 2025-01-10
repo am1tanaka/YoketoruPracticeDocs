@@ -89,11 +89,11 @@
 </ul>
 </li>
 </ul>
-<p>接触したときの動作と移動は、組み合わせになっています。これらを個別に実装することで、ゲームオブジェクトにアタッチするスクリプトの組み合わせを変えることで、キャラのバリエーションを増やせます。</p>
+<p>接触したときの動作と移動を別のスクリプトに実装することで、ゲームオブジェクトにアタッチするスクリプトを組み合わせれば、キャラのバリエーションが用意できるようになります。</p>
 
 <h2><a id="h6-2"></a><span class="secno">6.2　</span>状態の管理</h2>
-<p>状態の切り替えを管理するCharacterBehaviourクラスを作成して、それにIGameStateListenerを実装して、ゲームの進行の通知を受け取ります。</p>
-<p>移動や、爆発、コインの取得を、ゲームの通知に連動させる必要があります。<span class="listref"><a href="./create-characters.html#IStartStop">リスト6.1</a></span>のようなインターフェースを定義して、移動やプレイヤーに接触したときの処理に実装します。CharacterBehaviourは、開始時にIStartStopインターフェースのインスタンスを取得して、各通知に応じて、対応するメソッドを呼び出すようにします。</p>
+<p>状態の切り替えを管理するCharacterBehaviourクラスに、IGameStateListenerを実装して、ゲームの進行の通知を受け取ります。</p>
+<p>移動や爆発、コインの取得を、ゲームの通知に連動させる必要があります。<span class="listref"><a href="./create-characters.html#IStartStop">リスト6.1</a></span>のようなインターフェースを定義して、移動やプレイヤーに接触したときの処理に実装します。</p>
 <div id="IStartStop" class="code">
 <p class="caption">リスト6.1: IStartStopインターフェース</p>
 <pre class="list"> 1: /// &lt;summary&gt;
@@ -113,13 +113,26 @@
 15: }
 </pre>
 </div>
-<p>CharacterBehaviourクラスは、実装済みのものを用意しました。ProjectビューのAssets/Yoketoru/Scripts/Game/Characterフォルダーにあるので、開いて、中身を確認してください。</p>
+<p>CharacterBehaviourクラスは、開始時にIStartStopインターフェースのインスタンスを検索して、配列として保持します。ゲームの開始や停止の通知が届いたら、配列のインスタンスをループして、対応するメソッドを呼び出します。</p>
+<p>CharacterBehaviourクラスは、実装済みのものを用意しました。ProjectビューのAssets/Yoketoru/Scripts/Game/Characterフォルダーにあります。開いて、解説した内容の実装を確認してください。</p>
 
 <h2><a id="h6-3"></a><span class="secno">6.3　</span>プレイヤーに触れたときの処理</h2>
+<p>決めたことに従って、実装します。プレイヤーと同様に、次のスクリプトも別々に開発できます。</p>
+<ul>
+<li>爆弾がプレイヤーに接触した処理</li>
+<li>コインがプレイヤーに接触した処理</li>
+<li>跳ね返り移動</li>
+<li>決まったルートの移動</li>
+</ul>
+<p>masterブランチから開発用のブランチを作成して、開発します。</p>
 
-<h3><a id="h6-3-1"></a><span class="secno">6.3.1　</span>爆弾</h3>
-<p>爆弾で、プレイヤーと接触したことを確認したら、爆発用のゲームオブジェクトをInstantiateして、自分をDestroyします。そして、<a href="./game-system.html">第4章</a>で検討したIGameOverEmitterを使って、ゲームオーバーになったことを、ゲームの進行管理に知らせます。</p>
-<p>爆発処理は、Attackerクラスに実装します。雛形は、実装済みです。OnTriggerEnterに、次の処理を実装してください。</p>
+<h3><a id="h6-3-1"></a><span class="secno">6.3.1　</span>爆弾がプレイヤーに接触した処理</h3>
+<p>爆弾は、プレイヤーと接触したことを検知したら、爆発用のゲームオブジェクトをInstantiateして、自分をDestroyします。そして、<a href="./game-system.html">第4章</a>で検討したIGameOverEmitterを使って、ゲームオーバーになったことを、ゲームの進行管理に知らせます。</p>
+<p>爆発処理は、Attackerクラスに実装します。スクリプトのひな形を、/Assets/Yoketoru/Scripts/Game/Bombフォルダーに用意してあります。指示を読んで、実装してください。</p>
+<ul>
+<li>Projectビューで、Attackerスクリプトをダブルクリックして開く</li>
+<li>OnTriggerEnterに、次の処理を実装してください。</li>
+</ul>
 <ul>
 <li>相手のタグがPlayer以外なら、何もしない</li>
 <li><code class="inline-code tt">GetComponent&lt;CharacterBehaviour&gt;()</code>で、自分の状態管理のインスタンスを取り出して、IsPlayingがfalseなら、何もしない</li>
