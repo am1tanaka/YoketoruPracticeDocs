@@ -1,0 +1,120 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" xml:lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="stylesheet" type="text/css" href="style.css" />
+  <link rel="stylesheet" type="text/css" href="style-web.css" />
+<link rel="next" title="ゲームシステムの仕様" href="game-system.html" /><link rel="prev" title="目的を明らかにする：企画の構想" href="plan.html" />  <meta name="generator" content="Re:VIEW" />
+  <title>プロジェクトの準備 | 【よけとる】設計と開発の実践</title>
+</head>
+<body>
+  <div class="book">
+    <nav class="side-content">
+      <h1>【よけとる】設計と開発の実践</h1>
+      <ul class="book-toc">
+<li><a href="index.html">TOP</a></li>
+<li><a href="preface.html">はじめに</a></li>
+<li><a href="design-basics.html">第1章　設計の基礎知識</a></li>
+<li><a href="plan.html">第2章　目的を明らかにする：企画の構想</a></li>
+<li><a href="prepare.html">第3章　プロジェクトの準備</a></li>
+<li><a href="game-system.html">第4章　ゲームシステムの仕様</a></li>
+<li><a href="create-player.html">第5章　プレイヤーの開発</a></li>
+<li><a href="create-characters.html">第6章　爆弾、コイン、障害物の開発</a></li>
+<li><a href="matome.html">第7章　まとめ</a></li>
+</ul>
+      <p class="review-signature">powered by <a href="http://reviewml.org/">Re:VIEW</a></p>
+    </nav>
+    <div class="book-body">
+      <header>
+      </header>
+      <div class="book-page">
+        <h1><a id="h3"></a><span class="secno">第3章　</span>プロジェクトの準備</h1>
+<div class="lead">
+<p>設計練習用のリポジトリーを、フォークして、クローンします。また、Unityで開いて、実行して、ゲームループの操作を確認します。</p>
+</div>
+
+<h2><a id="h3-1"></a><span class="secno">3.1　</span>プロジェクトのフォークとクローン</h2>
+<p>YoketoruPracticeリポジトリをフォークして、環境を用意します。</p>
+<ul>
+<li><a href="https://github.com/tanakaedu/YoketoruPractice" class="link">https://github.com/tanakaedu/YoketoruPractice</a>を開く</li>
+<li>GitHubにサインインする</li>
+<li>Forkボタンをクリックする</li>
+<li>Create Forkボタンをクリックする</li>
+</ul>
+<p>自分のアカウントに、練習用のリポジトリーをフォーク（コピー）しました。次に、クローンして、ダウンロードします。</p>
+<ul>
+<li>緑色のCodeボタンをクリックして、Open with GitHub Desktopをクリックする</li>
+<li>GitHubDesktop.exeを開くをクリックする</li>
+<li>Choose...ボタンをクリックして、ドキュメントの自分のフォルダー内の任意の場所を指定する</li>
+<li>Closeをクリックする</li>
+</ul>
+<p>以上で、作業用PCに、リポジトリーがダウンロードできました。</p>
+
+<h2><a id="h3-2"></a><span class="secno">3.2　</span>Unityで実行する</h2>
+<p>Unityで開いて、初期設定をします。</p>
+<ul>
+<li>Unity Hubを起動する</li>
+<li>開くをクリックする</li>
+<li>YoketoruPracticeリポジトリーをクローンしたフォルダーを選択して、開くをクリックする</li>
+<li>プロジェクトが開くのを待つ</li>
+</ul>
+<p>本プロジェクトは、TextMesh Proを使うので、必要なアセットをインポートします。</p>
+<ul>
+<li>Windowメニューから、TextMesh Pro &gt; Import TMP Essential Resourcesを選択する</li>
+<li>Importをクリックする</li>
+</ul>
+<p>準備が完了しました。Gameビューの設定と起動シーンを開いて、Playします。</p>
+<ul>
+<li>Gameビューの画面サイズを、960x540か、16:9に設定する</li>
+<li>Projectビューで、Assets/Yoketoru/Scenesフォルダーを開く</li>
+<li>GameSystemシーンをダブルクリックして開く</li>
+<li>Playする</li>
+</ul>
+<p>エラーなく、開始すればOKです。</p>
+
+<h2><a id="h3-3"></a><span class="secno">3.3　</span>操作</h2>
+<p>Playしたら、次の操作が実装されています。</p>
+<ul>
+<li>タイトル<ul>
+<li>Cキー：クレジットを表示する</li>
+<li>Xキー：クレジットを閉じる</li>
+<li>スペース/クリック：ゲーム開始</li>
+</ul>
+</li>
+<li>ゲーム<ul>
+<li>Oキー：強制ゲームオーバー</li>
+<li>Cキー：強制ステージクリア</li>
+</ul>
+</li>
+<li>ゲームオーバー<ul>
+<li>スペースキー：コンティニュー</li>
+<li>Tキー：タイトルへ戻る</li>
+</ul>
+</li>
+<li>クリア<ul>
+<li>スペースキー：次へ</li>
+</ul>
+</li>
+<li>オールクリア<ul>
+<li>スペースキー：タイトルへ戻る</li>
+</ul>
+</li>
+</ul>
+      </div>
+      <nav class="book-navi book-prev">
+                <a href="plan.html">
+          <div class="book-cursor"><span class="cursor-prev">◀</span></div>
+        </a>
+              </nav>
+      <nav class="book-navi book-next">
+                <a href="game-system.html">
+          <div class="book-cursor"><span class="cursor-next">▶</span></div>
+        </a>
+              </nav>
+    </div>
+  </div>
+  <footer>
+      </footer>
+</body>
+</html>
