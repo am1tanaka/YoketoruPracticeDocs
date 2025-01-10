@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" xml:lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="stylesheet" type="text/css" href="style.css" />
+  <link rel="stylesheet" type="text/css" href="style-web.css" />
+<link rel="next" title="目的を明らかにする：企画の構想" href="plan.html" /><link rel="prev" title="はじめに" href="preface.html" />  <meta name="generator" content="Re:VIEW" />
+  <title>設計の基礎知識 | 【よけとる】設計と開発の実践</title>
+</head>
+<body>
+  <div class="book">
+    <nav class="side-content">
+      <h1>【よけとる】設計と開発の実践</h1>
+      <ul class="book-toc">
+<li><a href="index.html">TOP</a></li>
+<li><a href="preface.html">はじめに</a></li>
+<li><a href="design-basics.html">第1章　設計の基礎知識</a></li>
+<li><a href="plan.html">第2章　目的を明らかにする：企画の構想</a></li>
+<li><a href="prepare.html">第3章　プロジェクトの準備</a></li>
+<li><a href="game-system.html">第4章　ゲームシステムの仕様</a></li>
+<li><a href="create-player.html">第5章　プレイヤーの開発</a></li>
+<li><a href="create-characters.html">第6章　爆弾、コイン、障害物の開発</a></li>
+<li><a href="matome.html">第7章　まとめ</a></li>
+</ul>
+      <p class="review-signature">powered by <a href="http://reviewml.org/">Re:VIEW</a></p>
+    </nav>
+    <div class="book-body">
+      <header>
+      </header>
+      <div class="book-page">
+        <h1><a id="h1"></a><span class="secno">第1章　</span>設計の基礎知識</h1>
+<div class="lead">
+<p>設計には、方針が必要です。本書で扱う設計の基礎を紹介します。</p>
+</div>
+
+<h2><a id="h1-1"></a><span class="secno">1.1　</span>なぜ設計をするのか</h2>
+<p>設計をする理由は、目的を達成しやすくすることです。</p>
+<p>たとえば、ゲームを作ることを考えます。いきなり、Unity Hubを起動して、プロジェクトの新規作成ボタンをクリックしました。さて、プロジェクト名をどうしたらよいでしょうか。とりあえず、今日の日付をプロジェクト名にして、Unityを起動させたとします。次に何をしたらよいでしょう。1つ作業を進めるごとに、行き当たりばったりで考えながらゲームを作るのは、無理がありそうです。</p>
+<p>そこで、次のようなことをします。</p>
+<ul>
+<li>目的を具体化する</li>
+<li>目的を達成するための要件と、制約条件を挙げる</li>
+<li>制約条件の中で、要件をすべて達成するための作業リストやスケジュールなどを作る</li>
+</ul>
+<p>学生活動では、このぐらいのことを検討しておけばよいでしょう。企業活動になると、予算という重要な制約が加わります。</p>
+<p>決めるべきことを決めておけば、開発はスムーズに進められます。タイトルは設計時に決めたものをつければよいですし、プロジェクトを作成したあとは、スケジュールに従って作業を進めればよいのです。スケジュール通りに作業リストを終えれば、目的を達成する要件を満たしたゲームが完成します。</p>
+<p>もちろん、すべてが予想通りに進むことはほぼありません。そのような場合は、目的やスケジュールに近づくように軌道修正をします。もし、目的やスケジュールを決めずに開発していたら、開発が脱線していることに気づくことも、修正するための方針を立てることも、難しくなります。</p>
+<p>設計することによって、開発をスムーズに進められます。また、開発が期待通りに進んでいるかを確認する指針となり、問題が発生したら、それを修正する方向を指し示す基準になります。一定以上の規模のプロジェクトや、チームで作業をする場合、設計をするかどうかは、完成率や完成品のクオリティに大きく影響するのです。</p>
+<div class="column">
+
+<h3><a id="column-1"></a>設計が必要ない場面</h3>
+<p>目的がない活動には、設計は要りません。たとえば、小さい子供の遊びには、目的がなく、設計は必要ありません。ただ、ぐるぐる回るとか、誰かを追いかけるとか、ボールを転がすことをひたすら繰り返して、満足します。</p>
+<p>学習の初期段階も同様です。目についたコードを入力してみたり、思いついたコードを書いてみることに、設計は不要です。この段階は、ツールや環境に慣れることが大切なので、とにかく触って、動かして、観察することが大切です。</p>
+<p>経験を積むと、単純な反応に飽きてきます。ボールを転がすだけでは物足りなくなって、投げて離れた的に当てるとか、蹴ってゴールに入れるとか、目的が欲しくなります。目的ができると、それを達成するための方法を考えるようになります。ここからが、設計の出番です。</p>
+</div>
+
+<h2><a id="h1-2"></a><span class="secno">1.2　</span>抽象化</h2>
+<p>開発するシステムを抽象化することは、プログラムの設計では大切です。抽象化とは、本質的な共通点によって物事をとらえることです。</p>
+<p>抽象化をするには、システムを構成するオブジェクトを列挙して、それらの共通点を見つけます。似ているものをグループ化して、共通する部分をインターフェースや親クラスとして定義します。定義したものに、異なる部分を加えて、バリエーションを増やします。</p>
+<p>抽象化する部分と、具象的に作る部分を切り分けることで、同じコードや分岐文を削減できます。また、変更に強い構造になります。</p>
+      </div>
+      <nav class="book-navi book-prev">
+                <a href="preface.html">
+          <div class="book-cursor"><span class="cursor-prev">◀</span></div>
+        </a>
+              </nav>
+      <nav class="book-navi book-next">
+                <a href="plan.html">
+          <div class="book-cursor"><span class="cursor-next">▶</span></div>
+        </a>
+              </nav>
+    </div>
+  </div>
+  <footer>
+      </footer>
+</body>
+</html>

@@ -1,0 +1,176 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" xml:lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="stylesheet" type="text/css" href="style.css" />
+  <link rel="stylesheet" type="text/css" href="style-web.css" />
+<link rel="next" title="まとめ" href="matome.html" /><link rel="prev" title="プレイヤーの開発" href="create-player.html" />  <meta name="generator" content="Re:VIEW" />
+  <title>爆弾、コイン、障害物の開発 | 【よけとる】設計と開発の実践</title>
+</head>
+<body>
+  <div class="book">
+    <nav class="side-content">
+      <h1>【よけとる】設計と開発の実践</h1>
+      <ul class="book-toc">
+<li><a href="index.html">TOP</a></li>
+<li><a href="preface.html">はじめに</a></li>
+<li><a href="design-basics.html">第1章　設計の基礎知識</a></li>
+<li><a href="plan.html">第2章　目的を明らかにする：企画の構想</a></li>
+<li><a href="prepare.html">第3章　プロジェクトの準備</a></li>
+<li><a href="game-system.html">第4章　ゲームシステムの仕様</a></li>
+<li><a href="create-player.html">第5章　プレイヤーの開発</a></li>
+<li><a href="create-characters.html">第6章　爆弾、コイン、障害物の開発</a></li>
+<li><a href="matome.html">第7章　まとめ</a></li>
+</ul>
+      <p class="review-signature">powered by <a href="http://reviewml.org/">Re:VIEW</a></p>
+    </nav>
+    <div class="book-body">
+      <header>
+      </header>
+      <div class="book-page">
+        <h1><a id="h6"></a><span class="secno">第6章　</span>爆弾、コイン、障害物の開発</h1>
+
+<h2><a id="h6-1"></a><span class="secno">6.1　</span>キャラの機能</h2>
+<p>すべてのキャラで共通なのが、ゲームの進行によって、動いたり、停止することです。プレイヤーと同様に、IGameStateListenerを実装して、ゲームの進行を受け取って、次の制御をします。</p>
+<ul>
+<li>ステージ開始時からカウントダウンまで停止</li>
+<li>カウントダウンが終わったら、移動開始</li>
+<li>ゲームオーバーや、クリアしたら、停止</li>
+</ul>
+<p>通知を受け取って、移動や停止を指示するクラスが必要です。</p>
+<p>企画構想でまとめた各キャラの機能は次のとおりです。</p>
+<ul>
+<li>爆弾<ul>
+<li>触れると爆発する危険物</li>
+<li>停止している普通の爆弾、決まった軌道で移動する黄色い爆弾、跳ね回っている赤い爆弾の3種類ある</li>
+</ul>
+</li>
+<li>コイン<ul>
+<li>停止している銅貨、決まった軌道で移動する銀貨、跳ね回っている金貨がある</li>
+<li>ステージ内にあるすべてのコインを取ったらクリア</li>
+</ul>
+</li>
+<li>障害物<ul>
+<li>行く手をさえぎる障害物</li>
+<li>触れてもミスにはならない</li>
+<li>岩や、決まった軌道を移動する木箱がある</li>
+</ul>
+</li>
+</ul>
+<p>これらから、プレイヤーと接触したときの動作を整理します。</p>
+<ul>
+<li>爆弾<ul>
+<li>爆発して、ゲームオーバーを要求する</li>
+</ul>
+</li>
+<li>コイン<ul>
+<li>消えて、基本点と残り秒数に応じた得点が加算される</li>
+<li>すべてのコインを取り終えたら、クリアを要求する</li>
+</ul>
+</li>
+<li>障害物<ul>
+<li>プレイヤーに触れても、スクリプト的な動作はなし</li>
+</ul>
+</li>
+</ul>
+<p>次に、動きを整理します。</p>
+<ul>
+<li>通常爆弾、銅のコイン<ul>
+<li>動かない</li>
+</ul>
+</li>
+<li>黄爆弾、銀のコイン、木箱<ul>
+<li>決まったルートを、一定速度で巡回する</li>
+</ul>
+</li>
+<li>赤爆弾、金のコイン<ul>
+<li>等速直線運動をして、壁や障害物にぶつかると、跳ね返る</li>
+</ul>
+</li>
+</ul>
+<p>接触したときの動作と移動は、組み合わせになっています。これらを個別に実装することで、ゲームオブジェクトにアタッチするスクリプトの組み合わせを変えることで、キャラのバリエーションを増やせます。</p>
+
+<h2><a id="h6-2"></a><span class="secno">6.2　</span>状態の管理</h2>
+<p>状態の切り替えを管理するCharacterBehaviourクラスを作成して、それにIGameStateListenerを実装して、ゲームの進行の通知を受け取ります。</p>
+<p>移動や、爆発、コインの取得を、ゲームの通知に連動させる必要があります。<span class="listref"><a href="./create-characters.html#IStartStop">リスト6.1</a></span>のようなインターフェースを定義して、移動やプレイヤーに接触したときの処理に実装します。CharacterBehaviourは、開始時にIStartStopインターフェースのインスタンスを取得して、各通知に応じて、対応するメソッドを呼び出すようにします。</p>
+<div id="IStartStop" class="code">
+<p class="caption">リスト6.1: IStartStopインターフェース</p>
+<pre class="list"> 1: /// &lt;summary&gt;
+ 2: /// ゲームが開始したり、停止したときに呼び出されるメソッドを定義するインターフェース。
+ 3: /// &lt;/summary&gt;
+ 4: public interface IStartStop
+ 5: {
+ 6:     /// &lt;summary&gt;
+ 7:     /// ゲームが開始したときに呼び出されるメソッド。
+ 8:     /// &lt;/summary&gt;
+ 9:     public void OnGameStarted();
+10: 
+11:     /// &lt;summary&gt;
+12:     /// ゲームが停止したときに呼び出されるメソッド。
+13:     /// &lt;/summary&gt;
+14:     public void OnGameStopped();
+15: }
+</pre>
+</div>
+<p>CharacterBehaviourクラスは、実装済みのものを用意しました。ProjectビューのAssets/Yoketoru/Scripts/Game/Characterフォルダーにあるので、開いて、中身を確認してください。</p>
+
+<h2><a id="h6-3"></a><span class="secno">6.3　</span>プレイヤーに触れたときの処理</h2>
+
+<h3><a id="h6-3-1"></a><span class="secno">6.3.1　</span>爆弾</h3>
+<p>爆弾で、プレイヤーと接触したことを確認したら、爆発用のゲームオブジェクトをInstantiateして、自分をDestroyします。そして、<a href="./game-system.html">第4章</a>で検討したIGameOverEmitterを使って、ゲームオーバーになったことを、ゲームの進行管理に知らせます。</p>
+<p>爆発処理は、Attackerクラスに実装します。雛形は、実装済みです。OnTriggerEnterに、次の処理を実装してください。</p>
+<ul>
+<li>相手のタグがPlayer以外なら、何もしない</li>
+<li><code class="inline-code tt">GetComponent&lt;CharacterBehaviour&gt;()</code>で、自分の状態管理のインスタンスを取り出して、IsPlayingがfalseなら、何もしない</li>
+<li><code class="inline-code tt">GameOverRequest.Invoke();</code>を実行して、ゲームオーバーを要求する</li>
+<li>explosionPrefabを、transform.positionの場所にInstantiateする</li>
+<li><code class="inline-code tt">Destroy(gameObject);</code>で、爆弾を消す</li>
+</ul>
+
+<h3><a id="h6-3-2"></a><span class="secno">6.3.2　</span>コイン</h3>
+<p>コインを拾う処理を実装します。</p>
+<p>Coinスクリプトの雛形は、実装済みです。OnTriggerEnterを実装します。</p>
+<ul>
+<li>相手のタグがPlayer以外なら、何もしない</li>
+<li><code class="inline-code tt">GetComponent&lt;CharacterBehaviour&gt;()</code>で、自分の状態管理のインスタンスを取り出して、IsPlayingがfalseなら、何もしない</li>
+<li><code class="inline-code tt">CoinGot.Invoke(point);</code>で、ゲームの進行管理にコインを取ったことを知らせる</li>
+<li><code class="inline-code tt">Destroy(gameObject);</code>で、コインを消す</li>
+</ul>
+
+<h3><a id="h6-3-3"></a><span class="secno">6.3.3　</span>岩や木箱</h3>
+<p>障害物のオブジェクトについて検討します。障害物は、移動を制限するだけです。自前で処理を実装することも、Rigidbodyの衝突機能を使うこともできます。岩や木箱には、プレイヤーと連携が必要な機能はありません。</p>
+<p>今回は、シンプルにRigidbodyの機能を使うことにします。木箱は押せないので、Is Kinematicを有効にするとよいでしょう。別ページの、岩や木箱の仕様書に、必要事項を記入します。</p>
+
+<h2><a id="h6-4"></a><span class="secno">6.4　</span>移動の実装</h2>
+<p>爆弾、コイン、木箱の移動処理の実装について、検討します。</p>
+
+<h3><a id="h6-4-1"></a><span class="secno">6.4.1　</span>移動の仕方の検討</h3>
+<p>移動には、次の3酒類あります。</p>
+<ul>
+<li>動かない</li>
+<li>決まったルートを、一定速度で巡回する</li>
+<li>等速直線運動で移動して、何かに衝突したら、跳ね返る</li>
+</ul>
+<p>動かないものは、スクリプトをアタッチしなければよさそうです。</p>
+
+<h2><a id="h6-5"></a><span class="secno">6.5　</span>開発計画</h2>
+
+<h2><a id="h6-6"></a><span class="secno">6.6　</span>得点処理</h2>
+      </div>
+      <nav class="book-navi book-prev">
+                <a href="create-player.html">
+          <div class="book-cursor"><span class="cursor-prev">◀</span></div>
+        </a>
+              </nav>
+      <nav class="book-navi book-next">
+                <a href="matome.html">
+          <div class="book-cursor"><span class="cursor-next">▶</span></div>
+        </a>
+              </nav>
+    </div>
+  </div>
+  <footer>
+      </footer>
+</body>
+</html>

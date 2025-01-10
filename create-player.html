@@ -1,0 +1,865 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" xml:lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <link rel="stylesheet" type="text/css" href="style.css" />
+  <link rel="stylesheet" type="text/css" href="style-web.css" />
+<link rel="next" title="爆弾、コイン、障害物の開発" href="create-characters.html" /><link rel="prev" title="ゲームシステムの仕様" href="game-system.html" />  <meta name="generator" content="Re:VIEW" />
+  <title>プレイヤーの開発 | 【よけとる】設計と開発の実践</title>
+</head>
+<body>
+  <div class="book">
+    <nav class="side-content">
+      <h1>【よけとる】設計と開発の実践</h1>
+      <ul class="book-toc">
+<li><a href="index.html">TOP</a></li>
+<li><a href="preface.html">はじめに</a></li>
+<li><a href="design-basics.html">第1章　設計の基礎知識</a></li>
+<li><a href="plan.html">第2章　目的を明らかにする：企画の構想</a></li>
+<li><a href="prepare.html">第3章　プロジェクトの準備</a></li>
+<li><a href="game-system.html">第4章　ゲームシステムの仕様</a></li>
+<li><a href="create-player.html">第5章　プレイヤーの開発</a></li>
+<li><a href="create-characters.html">第6章　爆弾、コイン、障害物の開発</a></li>
+<li><a href="matome.html">第7章　まとめ</a></li>
+</ul>
+      <p class="review-signature">powered by <a href="http://reviewml.org/">Re:VIEW</a></p>
+    </nav>
+    <div class="book-body">
+      <header>
+      </header>
+      <div class="book-page">
+        <h1><a id="h5"></a><span class="secno">第5章　</span>プレイヤーの開発</h1>
+<div class="lead">
+<p>本章では、プレイヤーキャラクター（以降、プレイヤー）を実装するための仕様と、ゲームシステムの利用方法を解説します。本章の内容をもとに、実装してみてください。</p>
+</div>
+
+<h2><a id="h5-1"></a><span class="secno">5.1　</span>プレイヤーの機能</h2>
+<p>ゲームシステムのときと同様に、サムネイル（<span class="imgref"><a href="./create-player.html#game-image">図5.1</a></span>）や、ゲーム画面を見ながら、詳細を検討します。</p>
+<div id="game-image" class="image">
+<img src="images/create-player/game-image.png" alt="ゲーム画面のサムネイル" />
+<p class="caption">
+図5.1: ゲーム画面のサムネイル
+</p>
+</div>
+<div id="game-mock" class="image">
+<img src="images/create-player/game-mock.png" alt="ゲーム画面のモックアップ" />
+<p class="caption">
+図5.2: ゲーム画面のモックアップ
+</p>
+</div>
+<p>画面イメージを眺めながら、ゲームが動いている様子を想像して、プレイヤーの機能を具体化していきます。ゲーム画面が表示される演出から想像をはじめて、操作した時の反応、他のキャラクターと衝突したときに起きることなど、プレイヤーに関連する動作をすべて書き出します。</p>
+<ul>
+<li>ゲームが開始したら、既定のスタート地点に配置</li>
+<li>スタートのカウントダウン中は、操作不可</li>
+<li>カウントダウンが終わったら、操作できるようになる</li>
+<li>キー入力、マウス移動、ゲームパッドで操作した方向へ移動</li>
+<li>マウス操作は、移動量に応じた速度で移動。速度には、上限を設定する</li>
+<li>アナログスティックは、スティックを倒す量に応じて、速度を変える。最大に倒したときに、マウスの最高速度</li>
+<li>キーやD-padでの移動は、常に既定の速度で移動<ul>
+<li>企画構想時点では考えていなかったが、これだとマウスやアナログスティックに対して、制約が大きい。試遊した上で、必要であれば、ShiftキーやBボタンを押しながら移動すると、最高速度で移動できる機能を検討する</li>
+</ul>
+</li>
+<li>岩や木箱があると、先に進めなくなる。押すこともできない</li>
+<li>爆弾に触れたら<ul>
+<li>爆弾が爆発</li>
+<li>ゲームオーバーへ遷移</li>
+<li>操作を停止</li>
+<li>コンティニューが選ばれたら、スタート地点へ戻す</li>
+<li>タイトルへ戻るなら、何もせずにシーンが切り替わるのを待つ</li>
+</ul>
+</li>
+<li>コインに触れたら、<ul>
+<li>コインの基本点に、残りの秒数をかけた点数を獲得する</li>
+<li>コインをすべて取っていたら、クリアへ遷移</li>
+<li>操作を停止して、シーンが切り替わるまで何もしない</li>
+</ul>
+</li>
+</ul>
+<p>これらが実装できれば、プレイヤーは完成します。</p>
+
+<h2><a id="h5-2"></a><span class="secno">5.2　</span>プレイヤーの実装方法の検討</h2>
+<p>本企画の目的は、設計を学ぶことです。今回のような小さいゲームなら、1つのクラスにすべての機能を実装しても、問題は起きないでしょう。しかし、設計の経験を積むために、SOLID原則に基づいて、複数のクラスとインターフェースで実装します。</p>
+
+<h3><a id="h5-2-1"></a><span class="secno">5.2.1　</span>SOLID原則</h3>
+<p>SOLID原則は、次のような5つの原則です。</p>
+<ul>
+<li>単一責任の原則<ul>
+<li>あるオブジェクトの変更理由が、複数あってはならない</li>
+</ul>
+</li>
+<li>オープン・クローズドの原則<ul>
+<li>既存のコードは、修正せずに（クローズド）、機能を拡張可能できる（オープン）ようにする</li>
+</ul>
+</li>
+<li>リスコフの置換原則<ul>
+<li>ポリモーフィズムが、特別な初期化や分岐なしで、入れ替えできる作りにする</li>
+</ul>
+</li>
+<li>インターフェース分離の原則<ul>
+<li>必要な機能が異なるなら、不要な定義を含まないように、インターフェースを分離する</li>
+</ul>
+</li>
+<li>依存関係逆転の原則<ul>
+<li>上下レベルで考えるなら、上下を逆にして、下位レベルから上位レベルに依存させる</li>
+<li>抽象と具象で考えるなら、抽象から具象を逆にして、具象から抽象に依存させる</li>
+</ul>
+</li>
+</ul>
+<p>それらを念頭に、プレイヤーを実装するためのクラスやインターフェースを検討します。</p>
+
+<h3><a id="h5-2-2"></a><span class="secno">5.2.2　</span>プレイヤーの状態の管理</h3>
+<p>先に挙げたプレイヤーの機能を実装するクラスを、単一責任の原則に基づいて検討します。</p>
+<p>ゲームの進行に応じて、スタート地点に戻ったり、操作の禁止や許可をしたりする必要があります。プレイヤーを管理するためのPlayerクラスを定義します。状態管理の他、ゲームシステムとのやりとりもプレイヤーの管理といえるので、このクラスに担当させます。</p>
+<p>各状態については、Playerクラスに実装するか、状態ごとにクラスを用意するか、迷うところです。状態が少なく、実装する処理も小さいため、状態ごとにクラスを用意するのは、やりすぎな可能性があります。のちほど、改めて検討します。</p>
+
+<h3><a id="h5-2-3"></a><span class="secno">5.2.3　</span>操作と移動</h3>
+<p>操作は、複数のコントローラーに対応させる予定でした。あとで対応コントローラーを増やすことも考えられます。これらの処理を1つのクラスで実装すると、対応コントローラーを増やすときに、クラスの修正が必要になります。これは、SOLID原則のオープン・クローズドの原則違反です。また、入力と移動といった複数の理由で、クラスの修正が発生するので、単一責任の原則にも違反します。</p>
+<p>以上から、各操作ごとに読み取りクラスを用意します。また、移動は、操作と別の移動クラスを定義して、そこに実装します。</p>
+<p>アニメをさせるなら、アニメを管理する場所の検討が必要です。アニメを統括するクラスを作るか、状態に応じて変化させるならPlayer、移動に関するアニメは移動クラスに実装してもよいでしょう。</p>
+<p>今回は、移動する方向を向かせるだけです。移動に関する処理なので、移動クラスに担当させればよいでしょう。</p>
+<p>岩や木箱で停止する機能は、移動の実装時に、改めて検討します。</p>
+
+<h3><a id="h5-2-4"></a><span class="secno">5.2.4　</span>爆弾との接触</h3>
+<p>プレイヤーと爆弾が接触したことは、両者とも知ることができます。それぞれ、どのような実装になりそうかを具体的に考えてみましょう。</p>
+<p>まずは、接触を検出する処理について考えます。プレイヤーは、爆弾以外に、コインとも接触します。プレイヤーに実装する場合、衝突した相手を判定して、処理を分割する必要がありそうです。一方の爆弾は、プレイヤーのみに反応します。接触相手がプレイヤーなら、爆発するだけです。爆弾の方が、検出がシンプルに実装できます。</p>
+<p>次に、ゲームオーバーを要求するIGameOverEmitterについて考えます。プレイヤーは1つしかないので、ゲームシステムからIGameOverEmitterを使うのが簡単です。ただし、プレイヤーが爆弾に触ったことを知る必要があります。爆弾に実装すれば、爆弾のみで処理を完了できます。気になるのは、爆弾はステージ中に複数あるので、すべての爆弾にIGameOverEmitterの設定が必要なことです。初期化の時間が少し増えそうで、メモリを少し多く消費します。</p>
+<p>接触したら何かをするという、ゲームでよくある処理でも、実装方法はいくつも考えられます。思いついた方法をいきなり実装するよりも、いくつか案を出して、メリットとデメリットを比較して選ぶとよいでしょう。</p>
+<p>相手の酒類を大雑把に知るため、タグを利用します。プレイヤーに、Playerタグを設定しておくとよいでしょう。爆弾にも、必要になったら何らかのタグを設定します。</p>
+
+<h3><a id="h5-2-5"></a><span class="secno">5.2.5　</span>コインとの接触</h3>
+<p>プレイヤーが、コインと接触したことを検出する処理は、爆弾と同じ理由で、コイン側に実装する方がシンプルです。</p>
+<p>コインを取ったら、<a href="./game-system.html">第4章</a>で決めたように、IGetCoinEmitterで受け取ったメソッドを呼び出します。コインの基本点を引数で渡すようにすれば、加点とコインを減らす処理をまとめて実行できます。プレイヤーとコインのどちらに実装するかは、爆弾のゲームオーバー報告と同様の判断が必要です。どちらでも構いませんが、混乱を避けるために、爆弾とコインで統一するのが大切です。</p>
+<p>IGetCoinEmitterをコインに実装するなら、プレイヤーには、コイン向けの実装は不要です。タグがPlayerになっていれば、問題ありません。</p>
+
+<h3><a id="h5-2-6"></a><span class="secno">5.2.6　</span>プレイヤーの実装方法のまとめ</h3>
+<p>プレイヤーの機能で挙げた項目について、実装方法を検討しました。プレイヤーは、次のような構成にします。</p>
+<ul>
+<li>Playerクラスで、プレイヤーの状態を管理</li>
+<li>対応コントローラーごとに、入力を読み取って、移動量を返すクラスを用意</li>
+<li>移動を担当するクラスで、移動量を受け取って、キャラクターの向きの制御と移動</li>
+<li>爆弾とコインのために、タグを、Playerに設定</li>
+<li>IGameOverEmitterをプレイヤーに実装するなら、Playerクラスに実装</li>
+<li>IGetCoinEmitterをプレイヤーに実装するなら、Playerクラスに実装</li>
+</ul>
+<p>これらは、同時に開発できます。入力と移動がなくても、プレイヤーの状態管理クラスは作れます。移動するタイミングになったら、Debug.Logで「移動開始」などと表示すれば、状態が正しく変わっていることを確認できます。デバッグキーで、コインの取得やゲームオーバーの動作を試すこともできます。</p>
+<p>コントローラーの入力の実装に、オブジェクトの移動は要りません。移動量をDebug.Logなどで出力したり、テストランナーで動作確認できます。</p>
+<p>移動クラスも同様です。入力クラスがなくても、仮の入力クラスを作成したり、テストランナーで入力を渡すことで、開発できます。</p>
+<p>すべてが揃ったら、プレイヤーの進行管理クラスに組み込んで完成です。クラスを分割することで、チーム開発がやりやすくなります。</p>
+
+<h2><a id="h5-3"></a><span class="secno">5.3　</span>実装手順の決め方</h2>
+<p>プレイヤーの構造が決まりました。実装手順を決めて、実装を進めていきましょう。</p>
+<p>手順は、出力＞入力＞処理の順がオススメです。また、簡単なものから実装するのがコツです。不明なことが多いと、同じ内容でも実装は難しく感じます。パズルを組み立てるときと同じです。</p>
+<p>プレイヤーの管理クラス、入力を読み取るクラス、移動クラスは、同時に開発できます。担当を決めて、一斉に実装してみるのもよいでしょう。</p>
+
+<h2><a id="h5-4"></a><span class="secno">5.4　</span>プレイヤー管理の実装</h2>
+<p>プレイヤーの進行管理を実装するための解説をします。まずは、必要な機能を整理します。</p>
+<ul>
+<li>クラス名は、Playerとする</li>
+<li>MonoBehaviourを継承</li>
+<li>IGameStateListenerを実装する</li>
+<li>Awakeで、現在の座標と方向を保存する</li>
+<li>次の状態を管理する<ul>
+<li>Play<ul>
+<li>入力と移動を実行する</li>
+</ul>
+</li>
+<li>GameOver<ul>
+<li>移動を停止する</li>
+</ul>
+</li>
+<li>Clear<ul>
+<li>移動を停止する</li>
+</ul>
+</li>
+<li>Reset<ul>
+<li>Awakeで保存した座標と向きを設定する</li>
+<li>移動を停止する</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<p>これらのひな形となるPlayer.csが、Assets/Yoketoru/Scripts/Game/Player/Player.csにあります。ゲームの状態変更は、受け取れるようになっています。Playして、ゲームを開始すると、操作ができるようになるタイミングで「操作と移動開始」とログに表示されます（<span class="imgref"><a href="./create-player.html#start-game">図5.3</a></span>）。</p>
+<div id="start-game" class="image">
+<img src="images/create-player/start-game.png" alt="ゲームが開始したことを示すログ" />
+<p class="caption">
+図5.3: ゲームが開始したことを示すログ
+</p>
+</div>
+<p>操作や移動は、他の人が開発することを前提として話しを進めます。挙げた機能のうち、「クラス名は、Playerとする」「MonoBehaviourを継承」「IGameStateListenerを実装する」は、ひな形で完了しています。状態の管理も、enumで定義して、状態を簡易的に管理するSimpleStateを使って、実装済みです。移動を停止するのは、操作と移動をしなければいいので、現時点ですでにできています。</p>
+<p>残っているのは、Awake時に座標と回転を記録しておくことと、Resetの初期化時に、記録していた座標と回転を復帰するだけです。</p>
+
+<h3><a id="h5-4-1"></a><span class="secno">5.4.1　</span>開始位置に戻す処理の準備</h3>
+<p>開発用のブランチを作成して、そこで作業するのがよいマナーです。次の手順で、開発用のブランチを作成します。操作は、慣れているものを使ってください。ここでは、GitHub Desktopの操作を示します。</p>
+<ol>
+<li>変更があれば、コミットするか、Discardする</li>
+<li>Current branchをクリックして、Filter欄にplayer_stateと入力して、Create new branchをクリックする</li>
+<li>Create branch based on...は、masterを選んで、Create branchをクリックする</li>
+</ol>
+<p>以上で、プレイヤー管理スクリプトを開発するためのブランチが作成されて、切り替わります。</p>
+<p>まず、出力から考えます。この処理をすると、プレイヤーが開始時の座標と回転に戻ります。移動が実装できていないので、現状だと、正しく動作しているかが確認できません。</p>
+<div id="start-transform" class="image">
+<img src="images/create-player/start-transform.png" alt="開始位置" />
+<p class="caption">
+図5.4: 開始位置
+</p>
+</div>
+<p>そこで、Playをしたら、プレイヤーの座標と回転を強制的に変えるコードを実装してみましょう。</p>
+<p>Player.csのInitState()メソッド内のcase State.Playを、次のように修正します。</p>
+<div id="debug_move" class="caption-code">
+<p class="caption">リスト5.1: Playがはじまった瞬間に、座標と回転を変える</p>
+<pre class="list">            case State.Play:
+                Debug.Log($&quot;操作と移動開始&quot;);
+
+                // TODO: 動作を確認したら、消す
+                transform.Find(&quot;Pivot&quot;).eulerAngles
+                    = new Vector3(0, 0, -45);
+                transform.Translate(new Vector3(1, 1, 0));
+                break;
+</pre>
+</div>
+<p>Playして、ゲームを開始すると、プレイヤーが右上向きで、少し移動します。</p>
+<div id="started-transform" class="image">
+<img src="images/create-player/started-transform.png" alt="動作確認のために、右上へ少し移動" />
+<p class="caption">
+図5.5: 動作確認のために、右上へ少し移動
+</p>
+</div>
+<p>O（オー）キーを押すと、デバッグ機能でゲームオーバーになります。ゲームオーバー画面でスペースキーを押してコンティニューすると、カウントダウンがはじまります。このとき、プレイヤーの座標と回転が、ゲーム開始時と同じになれば、この機能の実装が完了したことになります。</p>
+
+<h3><a id="h5-4-2"></a><span class="secno">5.4.2　</span>開始位置に戻す処理の実装</h3>
+<p>次のヒントと参考に、機能を実装してください。変数名は、分かりやすい名前をつけてください。</p>
+<ul>
+<li>座標を記録するための変数を、Vector3型で定義する</li>
+<li>回転を記録するための変数を、Vector3型で定義する</li>
+<li>Awakeを定義して、次の処理を実装する<ul>
+<li>座標を記録するための変数に、<code class="inline-code tt">transform.position</code>を代入する</li>
+<li>回転を記録するための変数に、<code class="inline-code tt">transform.Find(&quot;Pivot&quot;).eulerAngles</code>を代入する</li>
+</ul>
+</li>
+<li>InitStateメソッドのState.Resetの初期化で、次の処理を実装する<ul>
+<li><code class="inline-code tt">transform.position</code>に、座標を記録するための変数の値を代入する</li>
+<li><code class="inline-code tt">transform.Find(&quot;Pivot&quot;).eulerAngles</code>に、回転を記録するための変数の値を代入する</li>
+</ul>
+</li>
+</ul>
+<p>実装できたら、Playして、ゲームオーバーからコンティニューをしてください。座標と回転が初期状態に戻れば、実装完了です。Playの初期化に実装していた、デバッグ用の移動処理は、消しておくとよいでしょう。</p>
+
+<h3><a id="h5-4-3"></a><span class="secno">5.4.3　</span>Playerクラスはひとまず完了</h3>
+<p>ここまでで、ひとまず完了です。単一責任の原則に基づいてクラスを分割して、クラスの役割を減らしたことで、完成させやすくなるのです。複雑さが減れば、バグも起きにくくなります。</p>
+<p>操作と移動用のクラスが完成したら、それらを組み込んで、本当に完成します。チームで打ち合せをして、取り組める作業を進めるとよいでしょう。</p>
+
+<h2><a id="h5-5"></a><span class="secno">5.5　</span>操作クラスの実装</h2>
+<p>担当する入力デバイスの値を読み取って、移動量を返す機能を作成します。</p>
+
+<h3><a id="h5-5-1"></a><span class="secno">5.5.1　</span>操作の実装方針</h3>
+<p>企画概要で、次の操作に対応すると書きました。</p>
+<ul>
+<li>キーボード</li>
+<li>マウス移動</li>
+<li>ゲームパッド（Xbox用）</li>
+</ul>
+<p>操作の読み取りクラスを個別に用意すれば、実装をシンプルにできて、対応デバイスを増やすのも楽になります。既存のクラスを修正せずに、新しいクラスを増やせば機能を拡張できるので、オープン・クローズドの原則に基づいた設計といえます。</p>
+<p>複数の種類の入力を、移動指示にまとめる処理が必要です。Playerクラスに実装することも考えられますが、入力処理なので、それ用のクラスを用意した方がよいでしょう。Playerクラスは、操作を統括するクラスのインスタンスを持って、必要なタイミングでメソッドを呼び出すようにしましょう。</p>
+<p>操作をまとめるクラス内で、入力デバイスを見分けて制御するのは、オープン・クローズドの原則に違反します。操作を読み取るクラスは、共通するインターフェースを定義して、呼び出し方を統一します。</p>
+<p>以上から、次のようなクラスやインターフェースを用意します。</p>
+<ul>
+<li>入力デバイスの読み取りクラスに実装する共通のインターフェース</li>
+<li>入力デバイスごとの読み取りクラス</li>
+<li>すべての入力デバイスを一括して制御するクラス</li>
+</ul>
+
+<h3><a id="h5-5-2"></a><span class="secno">5.5.2　</span>入力デバイスのインターフェース</h3>
+<p>今回のプロジェクトは、入力をInput Managerで読み取ることを前提に設定しています。Input Managerは、古くからあるUnityの入力方法です。更新のタイミングが、Updateに限定されているので、読み落としを避けるには、Updateで入力を読み取る必要があります。</p>
+<p>一方、移動処理は、物理更新であるFixedUpdateで実行します。こうすることで、実行しているPCの性能や、モニターのリフレッシュレートが違っても、同じ操作感にできます。</p>
+<p>問題は、最近のPCは処理が速く、Windowモードでは数百FPSで実行されることです。一方の物理更新は、Unityのデフォルトでは50FPSです。1回の移動処理の間に、Updateが10回ほど呼ばれる可能性があります。その対応が必要です。</p>
+<p>Updateのタイミングで、入力デバイスの値を読み取って、変数に保存します。保存の仕方は、デバイスの性質にあわせます。</p>
+<p>FixedUpdateのタイミングになったら、保存されている値を取り出して、保存されていた値をリセットします。取り出した値を、移動処理に渡します。</p>
+<p>以上をまとめたのが、<span class="listref"><a href="./create-player.html#IInput">リスト5.2</a></span>です。これは、用意済みです。</p>
+<div id="IInput" class="code">
+<p class="caption">リスト5.2: IInputインターフェース</p>
+<pre class="list"> 1: using UnityEngine;
+ 2: 
+ 3: public interface IInput
+ 4: {
+ 5:     /// &lt;summary&gt;
+ 6:     /// 前回からの移動量を返す。
+ 7:     /// &lt;/summary&gt;
+ 8:     /// &lt;returns&gt;長さ0-1の範囲のベクトル&lt;/returns&gt;
+ 9:     Vector2 GetValue();
+10: 
+11:     /// &lt;summary&gt;
+12:     /// Updateから呼び出して、入力の値を更新する。
+13:     /// &lt;/summary&gt;
+14:     void Update();
+15: }
+</pre>
+</div>
+
+<h3><a id="h5-5-3"></a><span class="secno">5.5.3　</span>入力をまとめるクラスの実装</h3>
+<p>インターフェースが定義できたら、入力をまとめるクラスを実装します。</p>
+<p>プレイヤー管理の実装と同様に、開発用のブランチを作成してから、実装をはじめましょう。</p>
+<ol>
+<li>変更があれば、コミットするか、Discardする</li>
+<li>Current branchをクリックして、Filter欄にinput_controllerと入力して、Create new branchをクリックする</li>
+<li>Create branch based on..は、masterを選んで、Create branchをクリックする</li>
+</ol>
+<p>以上で、開発用のブランチが作成されて、切り替わります。</p>
+<p>Scriptsフォルダー内の任意の場所に、新しいC# Scriptを作成して、名前を、InputControllerにします。このクラスは、Playerクラスで利用するので、MonoBehaviourを継承する必要はありません。中身の実装は後回しにして、<span class="listref"><a href="./create-player.html#InputController">リスト5.3</a></span>のように、必要な定義だけをまずは作ります。コメントは、省略して構いません。</p>
+<div id="InputController" class="code">
+<p class="caption">リスト5.3: InputController.csの雛形</p>
+<pre class="list"> 1: using UnityEngine;
+ 2: 
+ 3: /// &lt;summary&gt;
+ 4: /// 入力デバイスを取りまとめて制御するクラス
+ 5: /// &lt;/summary&gt;
+ 6: public class InputController
+ 7: {
+ 8:     /// &lt;summary&gt;
+ 9:     /// 対応する入力デバイスのインスタンスを定義
+10:     /// &lt;/summary&gt;
+11:     IInput[] inputs = {
+12: 
+13:     };
+14: 
+15:     /// &lt;summary&gt;
+16:     /// 更新処理を呼び出す。
+17:     /// &lt;/summary&gt;
+18:     public void Update()
+19:     {
+20: 
+21:     }
+22: 
+23:     /// &lt;summary&gt;
+24:     /// FixedUpdateから呼び出して、入力デバイスから移動量を読み取って、返す。
+25:     /// &lt;/summary&gt;
+26:     /// &lt;returns&gt;移動を指示するVector2の値&lt;/returns&gt;
+27:     public Vector2 GetValue()
+28:     {
+29:         return Vector2.zero;
+30:     }
+31: }
+</pre>
+</div>
+<p>動作を確認するための開発用のシーンとスクリプトを用意すれば、他の環境と切り離して、このクラスを開発できます。開発環境を用意する手順です。</p>
+<ol>
+<li>開発用のアセットを入れておくために、Projectビューで新規フォルダーを作成して、DevInputControllerなどの名前にする</li>
+<li>新規にシーンを作成して、DevInputControllerなどの名前で、DevInputControllerフォルダーに保存する</li>
+<li>DevInputControllerフォルダー内に、新しいC# Scriptを作成して、名前をInputControllerBenchにする</li>
+<li>DevInputControllerシーンを開く</li>
+<li>Create Emptyで、空のゲームオブジェクトを作成する</li>
+<li>InputControllerBenchスクリプトを、作成したゲームオブジェクトにアタッチする</li>
+<li>InputControllerBenchスクリプトを開く</li>
+<li><span class="listref"><a href="./create-player.html#InputControllerBench">リスト5.4</a></span>のコードを入力する</li>
+</ol>
+<div id="InputControllerBench" class="code">
+<p class="caption">リスト5.4: InputControllerBenchクラス</p>
+<pre class="list"> 1: using UnityEngine;
+ 2: 
+ 3: public class InputControllerBench : MonoBehaviour
+ 4: {
+ 5:     InputController inputController = new();
+ 6: 
+ 7:     void Update()
+ 8:     {
+ 9:         inputController.Update();
+10:     }
+11: 
+12:     void FixedUpdate()
+13:     {
+14:         var move = inputController.GetValue();
+15:         Debug.Log($&quot;{move}&quot;);
+16:     }
+17: }
+</pre>
+</div>
+<p>Playすると、InputControllerの処理を呼び出して、読み取った移動量がログに表示されます。これで、開発準備が整いました。InputControllerの実装に挑戦してください。</p>
+<p>InputControllerでやることは簡単です。Updateメソッド内で、inputsの数だけループを回して、inputsのUpdateを呼び出します。</p>
+<p>GetValueメソッドでは、inputsの数だけループを回して、inputsのGetValueメソッドを呼び出して、値を読み取ります。入力値は、入力デバイスの酒類だけ得られます。これを一本化するには、どうしたらよいかを考えて、実装してみてください。</p>
+<p>Playして、ログに（0.00, 0.00）と表示されれば成功です。コミットして、プッシュしておきましょう。この段階では、入力デバイスを実装していないので、操作をしても、値は変わりません。</p>
+<p>続きは、入力デバイスを読み取るクラスの解説の後に用意しています。</p>
+
+<h3><a id="h5-5-4"></a><span class="secno">5.5.4　</span>キーの読み取りの実装</h3>
+<p>キーボードの操作を読み取るクラスを実装します。入力をまとめるクラスと同様の手順で、開発用のkey_inputブランチを、masterブランチから作成してから、作業をはじめます。</p>
+<p>開発用のフォルダーに、新規でC# Scriptを作成して、名前をKeyInputにします。このクラスは、ゲームオブジェクトにはアタッチしないので、MonoBehaviourを継承する必要はありません。その代わり、IInputインターフェースを実装します。作成したスクリプトを開いて、<span class="listref"><a href="./create-player.html#KeyInput">リスト5.5</a></span>のコードを入力します。コメントは省略して構いません。</p>
+<div id="KeyInput" class="code">
+<p class="caption">リスト5.5: KeyInputクラスの雛形</p>
+<pre class="list"> 1: using UnityEngine;
+ 2: 
+ 3: /// &lt;summary&gt;
+ 4: /// キー入力を読み取って、返すクラス。
+ 5: /// &lt;/summary&gt;
+ 6: public class KeyInput : IInput
+ 7: {
+ 8:     /// &lt;summary&gt;
+ 9:     /// 入力値を記録しておく変数
+10:     /// &lt;/summary&gt;
+11:     Vector2 inputValue;
+12: 
+13:     public Vector2 GetValue()
+14:     {
+15:         return inputValue;
+16:     }
+17: 
+18:     public void Update()
+19:     {
+20:     }
+21: }
+</pre>
+</div>
+<p>Updateで読み取った入力の値を保存しておく変数として、inputValueを定義しています。GetValueメソッドとUpdateメソッドは、IInputインターフェースで定義したものです。これで、このクラスを定義したり、呼び出せるようになります。</p>
+<p>入力をまとめるクラスができていたら、そこに組み込んで開発できます。ここでは、並列して開発している想定で、開発用の環境を用意して、単独で開発を進めます。</p>
+<ol>
+<li>Projectビューで新規フォルダーを作成して、DevKeyInputなどの名前にする。これに、開発用のアセットを入れる</li>
+<li>DevKeyInputフォルダー内に、新規にシーンを作成して、DevKeyInputという名前にする</li>
+<li>作成したDevKeyInputをダブルクリックして開く</li>
+<li>DevKeyInputフォルダー内に、新しいC# Scriptを作成して、名前をKeyInputBenchにする</li>
+<li>Hierarchyビューに、Create Emptyで、空のゲームオブジェクトを作成する</li>
+<li>KeyInputBenchスクリプトを、作成したゲームオブジェクトにアタッチする</li>
+<li>KeyInputBenchスクリプトを開く</li>
+<li><span class="listref"><a href="./create-player.html#KeyInputBench">リスト5.6</a></span>のコードを入力する</li>
+</ol>
+<div id="KeyInputBench" class="code">
+<p class="caption">リスト5.6: KeyInputBenchクラス</p>
+<pre class="list"> 1: using UnityEngine;
+ 2: 
+ 3: public class KeyInputBench : MonoBehaviour
+ 4: {
+ 5:     KeyInput keyInput = new();
+ 6: 
+ 7:     void Update()
+ 8:     {
+ 9:         keyInput.Update();
+10:     }
+11: 
+12:     private void FixedUpdate()
+13:     {
+14:         Debug.Log($&quot;{keyInput.GetValue()}&quot;);
+15:     }
+16: }
+</pre>
+</div>
+<p>Playすると、ログに（0.00, 0.00）が表示されます。これで、KeyInputで読み取ったキーの値を確認できるようになりました。KeyInputの中身を実装します。</p>
+<p>WASDと矢印キーは、Project SettingsのInput Managerで定義済みです（<span class="imgref"><a href="./create-player.html#horizontal-vertical">図5.6</a></span>）。</p>
+<div id="horizontal-vertical" class="image">
+<img src="images/create-player/horizontal-vertical.png" alt="左右と上下入力の設定" />
+<p class="caption">
+図5.6: 左右と上下入力の設定
+</p>
+</div>
+<p>ゲームで使う操作は、定義済みです（<span class="imgref"><a href="./create-player.html#input-axes">図5.7</a></span>）。確認してみてください。</p>
+<div id="input-axes" class="image">
+<img src="images/create-player/input-axes.png" alt="Input Managerの設定" />
+<p class="caption">
+図5.7: Input Managerの設定
+</p>
+</div>
+<p>Input.GetAxisRawメソッドで、Horizontalを指定すれば、左右の入力が読めます。上下は、Verticalです。</p>
+<p>キーボードの入力は、直近の入力を採用すればよいでしょう。入力を記録しておくための変数は、inputValueとして定義済みです。Updateメソッドで、inputValue.xに左右の入力、inputValue.yに上下の入力を代入します。</p>
+<p>GetValueメソッドは実装済みなので、これで最小限の機能は完成です。Playをして、WASDや矢印キーを押してください。キー操作に応じて、ログに表示される値が変化します。</p>
+<p>このままだと、斜めのときにXとYの両方が1になるので、斜め移動が速くなってしまいます。次のコードで、長さを1に正規化できます。</p>
+<div id="normalized" class="caption-code">
+<p class="caption">リスト5.7: 入力値を正規化する</p>
+<pre class="list">        inputValue = 1.0f * inputValue.normalized;
+</pre>
+</div>
+<p>Playして、斜めの値が（0.71, 0.71）のようになれば成功です。</p>
+<p>速さが1だと、最高速度で移動します。通常移動のときは、1.0fのところを0.5fにするなどして、速度を落とすとよいでしょう。調整しやすくするために、スピードの値は、定数などで定義することを推奨します。</p>
+<p>おまけで、スピードアップ機能を解説します。Input.GetButtonメソッドに、SpeedUpを渡すと、左シフトボタンが押されているかを確認できます。左シフトが押されていたら長さを1、押されていなければ、通常の速さにすれば、スピードアップ操作できます。</p>
+
+<h3><a id="h5-5-5"></a><span class="secno">5.5.5　</span>ゲームパッド（Xbox）の読み取りの実装</h3>
+<p>開発環境の準備方法は、キー入力と同じです。Keyの部分を、GamePadに置き換えて、同様の手順でクラスを作成して、開発環境を準備してください。</p>
+<ol>
+<li>masterブランチから、開発用ブランチを作成する</li>
+<li>GamePadInputスクリプトを作成して、ひな形を入力</li>
+<li>開発用のフォルダーを作成する</li>
+<li>開発用のシーンを作成する</li>
+<li>ベンチ用スクリプトを作成する</li>
+<li>空のゲームオブジェクトを作成して、ベンチ用のスクリプトをアタッチする</li>
+</ol>
+<p>以上できたら、中身の実装に取り組みます。</p>
+<p>D-padの入力は、キーと同じ設定なので、対応は不要です。このクラスでは、アナログ入力に対応させます。</p>
+<p>アナログ入力は、Input.GetAxisで読み取ります。左右をHorizontalAnalog、上下をVerticalAnalogで指定します。返すのは、キーと同様に、最新の値でよいでしょう。Updateごとに入力を読み取って、inputValueへ代入します。アナログ入力は、正規化済みの値が得られるので、normalizedは不要です。</p>
+<p>アナログ入力は、倒し方で速さを変えられるので、スピードアップに対応させる必要はありません。もちろん、対応させても構いません。自由に設定してください。</p>
+
+<h3><a id="h5-5-6"></a><span class="secno">5.5.6　</span>マウスの読み取りの実装</h3>
+<p>キーやゲームパッドの入力と同様の手順で開発します。KeyやGamePadの部分を、Mouseに差し替えます。</p>
+<p>マウスの移動は、Input.GetAixsを使って読み取ります。左右がMouse X、上下がMouse Yです。</p>
+<p>マウスの移動量は、前回のUpdateから、今回のUpdateまでの間に移動した量が返されます。1回の物理更新の間に、10回Updateが実行されたなら、10回分の移動量を合計した値が、移動に使いたい量です。キーやゲームパッドとは、実装が変わるので、検討してみてください。</p>
+<p>マウスの移動量は、スクリーン上のピクセル数です。キーやゲームパッドのように、-1から1では値が得られないので、変換が必要です。最高速度のピクセル数を決めます。読み取ったマウスの移動量を、最高速度のピクセル数で割れば、-1から1に対応づけることができます。</p>
+<p>このままだと、マウスを最高速度より大きく移動させると、戻り値の大きさが1を越えてしまいます。最高速度は制限したいので、GetValueが返すベクトルの長さは、1を超えないように制限してください。</p>
+
+<h3><a id="h5-5-7"></a><span class="secno">5.5.7　</span>開発したクラスを統合する</h3>
+<p>操作関連のクラスがすべて完成したら、統合します。</p>
+<p>1人で作業をしていたら、マージするのが手っ取り早いです。別のアカウントで作業をしていたら、プルリクエストで統合するのが一般的です。しかし、マージやプルリクエストは、GitHubに慣れているメンバーがいないと、コンフリクトが起きたときの対処ができません。今回の内容なら、スクリプトファイルをコピーするだけなので、統合担当者にファイルを渡して済ませます。</p>
+<p>入力をまとめるクラスで統合するのが合理的なので、入力をまとめるクラスの担当者に、各入力クラスを渡します。Googleドライブやネットドライブなどを使う、USBメモリを使う、メールに添付するなどで、ファイルを渡してください。</p>
+<p>入力をまとめるクラスの担当者は、受け取ったファイルを、プロジェクトのScriptsフォルダー内の任意の場所にコピーします。あとは、InputControllerのinputsに、<span class="listref"><a href="./create-player.html#inputs_all">リスト5.8</a></span>のように入力クラスのインスタンスを登録します。</p>
+<div id="inputs_all" class="caption-code">
+<p class="caption">リスト5.8: すべての入力を登録</p>
+<pre class="list">    IInput[] inputs =
+    {
+        new KeyInput(),
+        new GamePadInput(),
+        new MouseInput(),
+    };
+</pre>
+</div>
+<p>DevInputControllerシーンを開いて、Playしてください。キーやゲームパッド、マウスを操作して、ログに期待した数値が表示されれば成功です。</p>
+<p>マウスしか反応しない場合、InputControllerのGetValueの実装方法が間違えています。3つのデバイスのうち、どれの入力を返せばよいかの判定方法を、再検討してください。</p>
+
+<h3><a id="h5-5-8"></a><span class="secno">5.5.8　</span>Playerに組み込む</h3>
+<p>InputControllerへの統合ができたら、プレイヤーに組み込みましょう。</p>
+<p>スクリプトファイルをコピーでも構いませんが、ファイルが複数あるので少々面倒です。そこで、unitypackageを使う方法を紹介します。作業するのは、入力のまとめクラスの担当者がよいでしょう。</p>
+<ul>
+<li>ここまでの作業を、コミットして、プッシュする</li>
+<li>UnityのProjectビューで、必要なクラスをShiftキーを押しながらクリックして、選択する（<span class="imgref"><a href="./create-player.html#select-files">図5.8</a></span>）</li>
+</ul>
+<div id="select-files" class="image">
+<img src="images/create-player/select-files.png" alt="DevInputControllerシーンの依存ファイルを選ぶ" />
+<p class="caption">
+図5.8: DevInputControllerシーンの依存ファイルを選ぶ
+</p>
+</div>
+<ul>
+<li>選択したファイルの1つを右クリックして、Export Package...を選ぶ（<span class="imgref"><a href="./create-player.html#export-package">図5.9</a></span>）</li>
+</ul>
+<div id="export-package" class="image">
+<img src="images/create-player/export-package.png" alt="パッケージとしてエクスポート" />
+<p class="caption">
+図5.9: パッケージとしてエクスポート
+</p>
+</div>
+<ul>
+<li>Include dependenciesのチェックを外してから、Exportをクリックする（<span class="imgref"><a href="./create-player.html#export-files">図5.10</a></span>）</li>
+</ul>
+<div id="export-files" class="image">
+<img src="images/create-player/export-files.png" alt="ファイルをエクスポートする" />
+<p class="caption">
+図5.10: ファイルをエクスポートする
+</p>
+</div>
+<ul>
+<li>inputsなどの名前を付けて、デスクトップなどの分かりやすい場所へ保存する</li>
+</ul>
+<p>以上で、unitypackageファイルとして、スクリプトファイルを保存しました。これを、ゲームの開発用ブランチに読み込みます。</p>
+<ul>
+<li>GitHub Desktopなどで、Playerを開発したplayer_stateブランチへ切り替える</li>
+<li>デスクトップなどへ保存したinputs.unitypackageファイルをドラッグして、UnityのProjectビューへドロップする</li>
+<li>Importダイアログが表示されたら、Importボタンをクリックする（<span class="imgref"><a href="./create-player.html#import-inputs">図5.11</a></span>）</li>
+</ul>
+<div id="import-inputs" class="image">
+<img src="images/create-player/import-inputs.png" alt="inputsパッケージをインポートする" />
+<p class="caption">
+図5.11: inputsパッケージをインポートする
+</p>
+</div>
+<p>以上で、作成した入力用のスクリプトを、プロジェクトに加えられました。あとは、Playerクラスで、InputControllerを利用すれば、入力を読み取れます。</p>
+<ul>
+<li>UnityのProjectビューから、Playerスクリプトを開く</li>
+<li>クラス内に、インスタンス変数として、次の定義を加える（<span class="listref"><a href="./create-player.html#define-input-controller">リスト5.9</a></span>）</li>
+</ul>
+<div id="define-input-controller" class="caption-code">
+<p class="caption">リスト5.9: InputControllerを定義する</p>
+<pre class="list">    InputController inputController = new();
+</pre>
+</div>
+<ul>
+<li>UpdateStateメソッド内のcase State.Playを、<span class="listref"><a href="./create-player.html#update-input-controller">リスト5.10</a></span>のようにする</li>
+</ul>
+<div id="update-input-controller" class="caption-code">
+<p class="caption">リスト5.10: Play状態なら、Updateごとに入力を更新する</p>
+<pre class="list">            case State.Play:
+                inputController.Update();
+                break;
+</pre>
+</div>
+<ul>
+<li>FixedUpdateStateメソッドのcase State.Playを、<span class="listref"><a href="./create-player.html#log-inputs">リスト5.11</a></span>のようにする</li>
+</ul>
+<div id="log-inputs" class="caption-code">
+<p class="caption">リスト5.11: 入力値を取り出して、ログへ表示する</p>
+<pre class="list">            case State.Play:
+                var move = inputController.GetValue();
+                Debug.Log($&quot;{move}&quot;);
+                break;
+</pre>
+</div>
+<p>ProjectビューからGameSystemシーンをダブルクリックして開いて、Playしてください。ゲームを開始して、カウントダウンが終わると、コンソールに入力値が表示されるようになります。これで、プレイヤーを操作するための入力値を取得する処理を、Playerに実装できました。</p>
+
+<h3><a id="h5-5-9"></a><span class="secno">5.5.9　</span>操作クラスのまとめ</h3>
+<p>次のようなクラスを作成して、Playerに組み込みました。</p>
+<ul>
+<li>入力をまとめるクラスInputController</li>
+<li>キーとD-padを読み取るKeyInput</li>
+<li>ゲームパッドのアナログ入力を読み取るGamePadInput</li>
+<li>マウスを読み取るMouseInput</li>
+</ul>
+<p>すべての入力デバイス用のクラスは、操作を抽象化したIInputインターフェースを実装しました。これにより、IInputの配列に各入力デバイスのインスタンスを列挙すると、繰り返し文で、まとめて入力処理を実行できます。拡張も簡単です。</p>
+<p>作成したスクリプトをまとめる方法として、ファイルのコピーと、unitypackageへエクスポートする方法を紹介しました。</p>
+<p>GitHubのマージやプルリクエストを使うと、ファイルの移動をせずに済みます。ただ、コンフリクトが起きたときの対応が難しいので、ここでは取り上げませんでした。企業でのチーム開発では、欠かせない機能なので、GitHubの公式ドキュメント<a id="fnb-github-docs" href="#fn-github-docs" class="noteref" epub:type="noteref">*1</a>などで、学習することをオススメします。</p>
+<div class="footnote" epub:type="footnote" id="fn-github-docs"><p class="footnote">[*1] GitHub Docs. Hello World: <a href="https://docs.github.com/ja/get-started/start-your-journey/hello-world" class="link">https://docs.github.com/ja/get-started/start-your-journey/hello-world</a></p></div>
+
+<h2><a id="h5-6"></a><span class="secno">5.6　</span>プレイヤーの移動の実装</h2>
+<p>移動処理の仕様を検討して、実装をします。</p>
+
+<h3><a id="h5-6-1"></a><span class="secno">5.6.1　</span>移動の仕様</h3>
+<p>移動に関して、思い浮かぶことを書き出して、整理します。</p>
+<ol>
+<li>入力デバイスから読み取った0～1の大きさのVector2の値で、移動させる</li>
+<li>移動するのは、Play状態のときのみ</li>
+<li>速度には、上限を設定する</li>
+<li>移動する方向を向く</li>
+<li>岩や木箱に移動を遮られる</li>
+<li>岩や木箱は押せない</li>
+<li>爆弾やコインは、接触したことは認識するが、移動は遮られない</li>
+<li>Z方向には動かない</li>
+<li>すべての軸で、衝突による回転はさせない</li>
+</ol>
+<p>このうち、7は爆弾とコイン側の設定です。7以外のものを、機能するようにしていきます。</p>
+
+<h3><a id="h5-6-2"></a><span class="secno">5.6.2　</span>Playerプレハブの設定</h3>
+<p>スクリプトの前に、まずはゲームオブジェクトを設定します。Playerプレハブを開いて、設定を確認していきます。</p>
+<p>Projectビューから、Assets/Yoketoru/Prefabsを開いて、Playerプレハブをダブルクリックします。作業の間に、他のメンバーがPlayerプレハブを変更しないように、声掛けをしてください。Playerプレハブが、変更される可能性があれば、PlayerプレハブをCtrl+Dキーで複製して、複製したプレハブで作業するのが安全です。</p>
+<p>Playerプレハブをダブルクリックして選択したら、Inspectorを確認します。爆弾やアイテムからプレイヤーと認識できるように、TagをPlayerに設定します（<span class="imgref"><a href="./create-player.html#player-tag">図5.12</a></span>）。</p>
+<div id="player-tag" class="image">
+<img src="images/create-player/player-tag.png" alt="Playerタグを設定する" />
+<p class="caption">
+図5.12: Playerタグを設定する
+</p>
+</div>
+<p>Z方向には動かず、すべての軸で衝突による回転をさせないために、RigidbodyのConstraints（制約）の設定を、<span class="imgref"><a href="./create-player.html#player-constraints">図5.13</a></span>のようにします。すでに設定されていれば、そのままで大丈夫です。</p>
+<div id="player-constraints" class="image">
+<img src="images/create-player/player-constraints.png" alt="Playerの物理制限" />
+<p class="caption">
+図5.13: Playerの物理制限
+</p>
+</div>
+<p>岩や木箱にぶつかる機能は、RigidbodyとColliderに任せましょう。Sphere ColliderのIs Triggerが、チェックされていないことを確認します。</p>
+<div id="player-collider" class="image">
+<img src="images/create-player/player-collider.png" alt="Sphere Colliderの設定" />
+<p class="caption">
+図5.14: Sphere Colliderの設定
+</p>
+</div>
+<p>以上で、書き出した機能のうち、5、6、8、9が設定できました。</p>
+
+<h3><a id="h5-6-3"></a><span class="secno">5.6.3　</span>移動クラスの検討</h3>
+<p>先に挙げたうち、移動に関するものは次のとおりです。</p>
+<ul>
+<li>入力デバイスから読み取った0～1の大きさのVector2の値で、移動させる</li>
+<li>速度には、上限を設定する</li>
+<li>移動する方向を向く</li>
+</ul>
+<p>ゲームオブジェクトを移動させるので、MonoBehaviourを継承したクラスに実装するのがよいでしょう。SerializeFieldが使えるので、速度の上限は、Inspectorで設定できるようにします。</p>
+<p>Playerクラスから、移動用のクラスを参照すると、あとで実装先やクラス名を変更する際に、Playerクラスの修正が必要になります。インターフェース越しに参照することで、のちの修正に柔軟性を持たせられます。Vector2の移動ベクトルを受け取って、速度を設定するメソッドを持たせたインターフェースを定義するのがよいでしょう。</p>
+<p>必要なことは検討できたので、実装に進みます。</p>
+
+<h3><a id="h5-6-4"></a><span class="secno">5.6.4　</span>移動スクリプトのひな形を作る</h3>
+<p>プレイヤーの移動を実装します。これまでと同様に、masterブランチから、新しくplayer_moveというブランチを作成して、そこで作業をしましょう。今回も、他の作業と平行して開発する前提で解説します。</p>
+<p>移動用のインターフェースは、Assets/Yoketoru/Scripts/Gameフォルダーに用意してあります。中身は、<span class="listref"><a href="./create-player.html#IMover">リスト5.12</a></span>のとおりです。</p>
+<div id="IMover" class="code">
+<p class="caption">リスト5.12: IMoverインターフェース</p>
+<pre class="list"> 1: using UnityEngine;
+ 2: 
+ 3: public interface IMover
+ 4: {
+ 5:     /// &lt;summary&gt;
+ 6:     /// 0-1の大きさの移動ベクトルを受け取って、移動させる。
+ 7:     /// &lt;/summary&gt;
+ 8:     /// &lt;param name=&quot;move&quot;&gt;0-1の範囲の移動方向ベクトル&lt;/param&gt;
+ 9:     void Move(Vector2 move);
+10: }
+</pre>
+</div>
+<p>移動ベクトルを受け取って、上限速度に応じて移動させるキャラなら、プレイヤー以外にもこの処理は使えます。そこで、CharacterMoverという名前のクラスにします。</p>
+<ul>
+<li>Scriptsフォルダー内の任意の場所に、新規スクリプトを作成して、CharacterMoverという名前にする</li>
+<li>ひな形として、<span class="listref"><a href="./create-player.html#character-mover-template">リスト5.13</a></span>を実装する</li>
+</ul>
+<div id="character-mover-template" class="code">
+<p class="caption">リスト5.13: CharacterMoverのひな形</p>
+<pre class="list"> 1: using UnityEngine;
+ 2: 
+ 3: /// &lt;summary&gt;
+ 4: /// キャラクターを移動させる。
+ 5: /// &lt;/summary&gt;
+ 6: public class CharacterMover : MonoBehaviour, IMover
+ 7: {
+ 8:     [SerializeField, Tooltip(&quot;最高速度&quot;)]
+ 9:     float maxSpeed = 4f;
+10: 
+11:     Rigidbody rb;
+12: 
+13:     void Awake()
+14:     {
+15:         rb = GetComponent&lt;Rigidbody&gt;();
+16:     }
+17: 
+18:     public void Move(Vector2 move)
+19:     {
+20:         Debug.Log($&quot;{move}&quot;);
+21:     }
+22: }
+</pre>
+</div>
+<p>入力したら、上書き保存します。Playすると、コンソールに、（0.00, 0.00）が表示されればOKです。</p>
+
+<h3><a id="h5-6-5"></a><span class="secno">5.6.5　</span>移動処理の開発環境を作る</h3>
+<p>入力のときと同様に、他のものが揃っていないことを前提にして、開発環境を作ります。</p>
+<ul>
+<li>新しいフォルダーを作成して、DevCharacterMoverという名前にする</li>
+<li>ProjectビューのAssets/Yoketoru/Prefabsフォルダー内のPlayerプレハブを選択して、Ctrl+Dキーで複製する</li>
+<li>複製してできるPlayer 1プレハブの名前を、DevPlayerに変更する</li>
+<li>DevPlayerプレハブをドラッグして、DevCharacterMoverフォルダーへドロップして移動する</li>
+<li>DevCharacterMoverフォルダーに、新規シーンを作成して、名前をDevCharacterMoverにする</li>
+<li>作成したDevCharacterMoverシーンをダブルクリックして開く</li>
+<li>Projectビューから、DevPlayerプレハブをドラッグして、Hierarchyビューにドロップする</li>
+</ul>
+<p>開発用シーンができたので、Playして、エラーがないことを確認してください。まだ、何も起きません。</p>
+<p>DevPlayer上で、CharacterMoverスクリプトが動作するように設定します。</p>
+<ul>
+<li>Projectビューで、DevPlayerプレハブを選択する</li>
+<li>Inspectorで、Playerスクリプトの右の3点アイコンをクリックして、Remove Componentを選択して、Playerスクリプトを削除する</li>
+<li>CharacterMoverスクリプトをドラッグして、DevPlayerプレハブにドロップして、アタッチする</li>
+<li>ProjectビューのDevCharacterMoverフォルダーを右クリックして、Create &gt; C# Scriptを選択して、スクリプトを作成して、名前をCharacterMoverBenchにする</li>
+<li>作成したCharacterMoverBenchスクリプトをドラッグして、ProjectビューのDevPlayerプレハブにドロップして、アタッチする</li>
+<li>CharacterMoverBenchスクリプトを、ダブルクリックして開く</li>
+<li><span class="listref"><a href="./create-player.html#character-mover-bench">リスト5.14</a></span>のコードを実装する</li>
+</ul>
+<div id="character-mover-bench" class="code">
+<p class="caption">リスト5.14: CharacterMoverBenchスクリプトの内容</p>
+<pre class="list"> 1: using System.Collections;
+ 2: using UnityEngine;
+ 3: 
+ 4: public class CharacterMoverBench : MonoBehaviour
+ 5: {
+ 6:     void Start()
+ 7:     {
+ 8:         StartCoroutine(MoveCoroutine());
+ 9:     }
+10: 
+11:     IEnumerator MoveCoroutine()
+12:     {
+13:         Vector2[] moveVectors =
+14:         {
+15:             Vector2.right,
+16:             new Vector2(1,-1).normalized,
+17:             Vector2.down,
+18:             new Vector2(-1,-1).normalized,
+19:             Vector2.left,
+20:             new Vector2(-1,1).normalized,
+21:             Vector2.up,
+22:             new Vector2(1,1).normalized,
+23:         };
+24: 
+25:         var mover = GetComponent&lt;IMover&gt;();
+26:         var wait = new WaitForFixedUpdate();
+27: 
+28:         while(true)
+29:         {
+30:             for (int i = 0; i &lt; moveVectors.Length;i++)
+31:             {
+32:                 for (int j = 0; j &lt; 20; j++)
+33:                 {
+34:                     mover.Move(moveVectors[i]);
+35:                     yield return wait;
+36:                 }
+37:             }
+38:         }
+39:     }
+40: }
+</pre>
+</div>
+<p>Playすると、一定時間ごとに、違う移動指定がMoveメソッドに渡される様子が、ログで確認できます。</p>
+<p>開発環境が整ったので、実装しましょう。</p>
+
+<h3><a id="h5-6-6"></a><span class="secno">5.6.6　</span>移動の実装</h3>
+<p>CharacterMoverスクリプトを開いて、Moveメソッドを実装します。</p>
+<p>Debug.Logは不要になったので消します。</p>
+<p>一番簡単な方法は、Rigidbodyのvelocityに、速度を設定することです。Rigidbodyのインスタンスは、変数rbに取得済みです。移動の指示は、引数のmoveに渡されるので、これに速度上限のmaxSpeedをかけた値を、rb.velocityに代入します。</p>
+
+<h3><a id="h5-6-7"></a><span class="secno">5.6.7　</span>移動方向に向かせる</h3>
+<p>動いたら、移動方向にプレイヤーを向かせてください。DevPlayerの子オブジェクトであるPivotを回転させます。Pivotのtransformは、<code class="inline-code tt">transform.Find(&quot;Pivot&quot;)</code>で得られます。Findは、やや重めの処理なので、StartやAwakeで取得して、変数に保存したものを使うのがよいでしょう。</p>
+<p>この処理は、いろいろな考え方があります。</p>
+<ul>
+<li>Vector2.SignedAngleで、上方向から、進行方向の角度を求める。求めた角度を、eulerAngleのZ軸に指定する</li>
+<li>Quaternion.LookRotationで、移動方向を向くクォータニオンを求めて、rotationに代入する<ul>
+<li>ただし、今回のプロジェクトだと、Pivotの子供のメッシュの向きがrotationに一致しなくなるので、コードに合わせて、最初に向いている方向の修正が必要</li>
+</ul>
+</li>
+</ul>
+<p>X-Z平面を移動する場合、上方向が変わらないので、transform.forwardに前方のベクトルを代入すれば、前を向かせることができます。ところが、今回はX-Y平面を移動するため、上方向が変わってしまいます。そのため、前を向かせるのに工夫が必要です。QuaternionやVectorを調べて、理解を深めるのに役立ててください。</p>
+
+<h3><a id="h5-6-8"></a><span class="secno">5.6.8　</span>移動処理をPlayerへ統合する</h3>
+<p>CharacterMoverスクリプトができたら、Playerに統合しましょう。必要なのは、CharacterMoverスクリプトのファイルだけなので、コピーなどで受け渡せばよいでしょう。</p>
+<p>Playerの開発担当者は、CharacterMoverスクリプトを受け取ったら、player-stateブランチのプロジェクトに加えます。このクラスは、ゲームオブジェクトにアタッチして使います。ProjectビューのAssets/Yoketoru/Prefabsフォルダー内のPlayerプレハブに、ドラッグ＆ドロップでアタッチします。</p>
+<p>Playerスクリプトに、移動を呼び出す処理を加えます。</p>
+<ul>
+<li>Playerスクリプトをダブルクリックして開く</li>
+<li>インスタンス変数として、<span class="listref"><a href="./create-player.html#define-mover">リスト5.15</a></span>の定義を追加する</li>
+</ul>
+<div id="define-mover" class="caption-code">
+<p class="caption">リスト5.15: IMoverの変数を定義</p>
+<pre class="list">    IMover mover;
+</pre>
+</div>
+<ul>
+<li>Awakeメソッドに、GetComponentを追加する（<span class="listref"><a href="./create-player.html#get-component-imover">リスト5.16</a></span>）</li>
+</ul>
+<div id="get-component-imover" class="caption-code">
+<p class="caption">リスト5.16: Awakeで、IMoverを取得する</p>
+<pre class="list">    void Awake() {
+        mover = GetComponent&lt;IMover&gt;();
+    }
+</pre>
+</div>
+<ul>
+<li>FixedUpdateStateメソッドのcase State.Playに、移動の呼び出しを加える（<span class="listref"><a href="./create-player.html#add-move-to-player">リスト5.17</a></span>）</li>
+</ul>
+<div id="add-move-to-player" class="caption-code">
+<p class="caption">リスト5.17: Playerスクリプトに、移動呼び出しを追加</p>
+<pre class="list">            case State.Play:
+                var move = inputController.GetValue();
+                mover.Move(move);
+                break;
+</pre>
+</div>
+<p>Playerの実装が完了しました。</p>
+
+<h2><a id="h5-7"></a><span class="secno">5.7　</span>不具合対応</h2>
+<p>ゲームオーバーやクリアしたときに、プレイヤーが止まらなくなる可能性があります。他にも、想定していない不具合が発生していたら、原因を調べて、修正に取り組んでください。</p>
+
+<h2><a id="h5-8"></a><span class="secno">5.8　</span>プレイヤーの実装のまとめ</h2>
+<p>プレイヤーを完成させました。最初に挙げたうち、次のものが実装できました。</p>
+<ul>
+<li>ゲームが開始したら、既定のスタート地点に配置</li>
+<li>スタートのカウントダウン中は、操作不可</li>
+<li>カウントダウンが終わったら、操作できるようになる</li>
+<li>キー入力、マウス移動、ゲームパッドで操作した方向へ移動</li>
+<li>岩や木箱があると、先に進めなくなる。押すこともできない</li>
+</ul>
+<p>次のものは、爆弾やコインに実装します。</p>
+<ul>
+<li>爆弾に触れた</li>
+<li>コインに触れた</li>
+</ul>
+<p>作業に先立って機能を書き出しておくことで、残りの作業を確認しながら、作業を進めることができます。</p>
+<p>単一責任の原則に基づいて、機能を実装するクラスを分けました。必要な機能と、メソッドの呼び出し方を決めて、インターフェースを用意しました。このような準備をしたことで、プレイヤーを、複数人で並行して開発できることを示しました。準備に時間はかかりますが、実装はあっという間に終わります。プロジェクトの規模が大きくなるほど、この効果は大きくなります。自分のプロジェクトでも、実践して見てください。</p>
+      </div>
+      <nav class="book-navi book-prev">
+                <a href="game-system.html">
+          <div class="book-cursor"><span class="cursor-prev">◀</span></div>
+        </a>
+              </nav>
+      <nav class="book-navi book-next">
+                <a href="create-characters.html">
+          <div class="book-cursor"><span class="cursor-next">▶</span></div>
+        </a>
+              </nav>
+    </div>
+  </div>
+  <footer>
+      </footer>
+</body>
+</html>
