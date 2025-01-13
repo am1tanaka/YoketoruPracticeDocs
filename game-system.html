@@ -144,15 +144,15 @@
 <h3><a id="h4-2-1"></a><span class="secno">4.2.1　</span>ゲームの進行変化を受け取る方法</h3>
 <p>通知を受け取りたいクラスに、IGameStateListenerインターフェースを実装します。ステージが開始する時に、システムがIGameStateListenerを実装しているクラスを検索して、進行に応じて、メソッドを呼び出します。各ゲームオブジェクトは、インターフェースで定義されているメソッドに、進行に応じて状態を変える処理を実装します。</p>
 <p>爆弾やコインは、ステージからなくなる可能性があります。リストやイベントに、消えたオブジェクトのインスタンスが残っていると、実行時にエラーがでてしまいます。そこで、状態の切り替えに加えて、消えた時に、自身のインスタンスを渡して、リストから削除を要求する機能も、IGameStateListenerに定義します。</p>
-<p>IGameStateListenerの定義は、<span class="listref"><a href="./game-system.html#IGameStartListener">リスト4.1</a></span>の通りです。</p>
-<div id="IGameStartListener" class="caption-code">
-<p class="caption">リスト4.1: IGameStartListenerインターフェース</p>
-<pre class="list">public interface IGameStartListener {
-    void OnResetPosition();
-    void OnGameStarted();
+<p>IGameStateListenerの定義は、<span class="listref"><a href="./game-system.html#IGameStateListener">リスト4.1</a></span>の通りです。</p>
+<div id="IGameStateListener" class="caption-code">
+<p class="caption">リスト4.1: IGameStateListenerインターフェース</p>
+<pre class="list">public interface IGameStateListener {
+    void OnReset();
+    void OnGameStart();
     void OnGameOver();
     void OnClear();
-    void AddDestroyListener(UnityAction&lt;IGameStartListener&gt; removeInstance);
+    UnityEvent&lt;IGameStateListener&gt; GameStateListenerDestroyed {get;}
 }
 </pre>
 </div>

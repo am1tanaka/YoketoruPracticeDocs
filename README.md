@@ -1,2 +1,2 @@
-# YoketoruPracticeDocs
-よけとる設計練習リポジトリー
+[YoketoruPracticeDocs](https://am1tanaka.github.io/YoketoruPracticeDocs/)
+

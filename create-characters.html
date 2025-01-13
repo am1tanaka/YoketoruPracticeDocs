@@ -30,16 +30,12 @@
       </header>
       <div class="book-page">
         <h1><a id="h6"></a><span class="secno">第6章　</span>爆弾、コイン、障害物の開発</h1>
+<div class="lead">
+<p>マップに登場するキャラを設計して、実装します。開発の流れは、プレイヤーと同じです。1つのゲームオブジェクトに統合したプレイヤーに対して、分割したクラスを組み合わせて、バリエーションが作れるようにします。</p>
+</div>
 
 <h2><a id="h6-1"></a><span class="secno">6.1　</span>キャラの機能</h2>
-<p>すべてのキャラで共通なのが、ゲームの進行によって、動いたり、停止することです。プレイヤーと同様に、IGameStateListenerを実装して、ゲームの進行を受け取って、次の制御をします。</p>
-<ul>
-<li>ステージ開始時からカウントダウンまで停止</li>
-<li>カウントダウンが終わったら、移動開始</li>
-<li>ゲームオーバーや、クリアしたら、停止</li>
-</ul>
-<p>通知を受け取って、移動や停止を指示するクラスが必要です。</p>
-<p>企画構想でまとめた各キャラの機能は次のとおりです。</p>
+<p>企画構想で挙げた各キャラの機能は次のとおりです。</p>
 <ul>
 <li>爆弾<ul>
 <li>触れると爆発する危険物</li>
@@ -58,7 +54,19 @@
 </ul>
 </li>
 </ul>
-<p>これらから、プレイヤーと接触したときの動作を整理します。</p>
+<p>これらから、キャラの機能を列挙することから始めます。</p>
+
+<h3><a id="h6-1-1"></a><span class="secno">6.1.1　</span>状態の管理機能</h3>
+<p>すべてのキャラで共通なのが、ゲームの進行によって、動いたり、停止することです。</p>
+<ul>
+<li>ステージ開始時からカウントダウンまで停止</li>
+<li>カウントダウンが終わったら、移動開始</li>
+<li>ゲームオーバーやクリアしたら、停止</li>
+</ul>
+<p>プレイヤーで使ったIGameStateListenerが使えます。ゲームの通知を受け取って、移動の開始や停止させるクラスを用意します。</p>
+
+<h3><a id="h6-1-2"></a><span class="secno">6.1.2　</span>プレイヤーと触れたときの動作</h3>
+<p>プレイヤーと接触したときの動作は、次のとおりです。</p>
 <ul>
 <li>爆弾<ul>
 <li>爆発して、ゲームオーバーを要求する</li>
@@ -74,7 +82,12 @@
 </ul>
 </li>
 </ul>
-<p>次に、動きを整理します。</p>
+<p>爆発を検知するのを、プレイヤーにするか、爆弾にするかの問題がありました。今回は、プレイヤーにやることがありません。爆弾側で完結させるのがよさそうです。この方法の懸案は、爆弾をすべて検索して、通知を渡すのが重い可能性です。この点を、実装時に確認します。</p>
+<p>爆弾に、OnTriggerEnterを実装して、相手がプレイヤーかどうかを確認します。プレイヤーなら、爆発を発生させます。また、<a href="./game-system.html">第4章</a>で検討したゲームオーバーを要求するIGameOverEmitterを実装して、ゲームオーバーを要求します。接触相手がプレイヤー以外なら、何もしません。</p>
+<p>爆弾が問題なければ、コインの方も、コインにまとめて実装する方法でよいでしょう。コインには、IGetCoinEmitterを実装して、プレイヤーと接触したら、コインの取得を報告させます。</p>
+
+<h3><a id="h6-1-3"></a><span class="secno">6.1.3　</span>動き方</h3>
+<p>動き方は、次のとおりです。</p>
 <ul>
 <li>通常爆弾、銅のコイン<ul>
 <li>動かない</li>
@@ -89,11 +102,17 @@
 </ul>
 </li>
 </ul>
-<p>接触したときの動作と移動を別のスクリプトに実装することで、ゲームオブジェクトにアタッチするスクリプトを組み合わせれば、キャラのバリエーションが用意できるようになります。</p>
+<p>動き方は、プレイヤーに触れたときの動作とは別のグループでまとめられます。これらを別クラスに分けて実装することで、ゲームオブジェクトにアタッチするスクリプトの組み合わせで、上記のキャラが用意できます。</p>
+<p>動かないものは、ゲームオブジェクトにコライダーと、必要に応じてタグ、レイヤーを設定すればよさそうです。岩などの衝突があるものは、staticを有効にしておくとよいでしょう。スクリプトは、不要です。</p>
+<p>決まったルートを一定速度で巡回するのは、黄爆弾、銀のコイン、木箱です。通過する座標と、ループ方法をインスペクターで設定したいので、MonoBehaiourで実装するのが良さそうです。木箱は、プレイヤーで押しても動かせません。RigidbodyのIs Kinematicを有効にして、MovePositionで移動させることになります。プレイヤーとは、違う動きになる可能性があるので、CharacterMoverとは別のクラスを用意します。</p>
+<p>等速直線運動をして、壁や障害物にぶつかると跳ね返るのは、赤爆弾と金のコインです。これらは、移動開始時にRigidbodyのvelocityに初速を設定して、あとは慣性移動に任せます。これも、CharacterMoverとは違うので、別のクラスを用意します。</p>
+<p>巡回と跳ね返りは、どちらもゲームの開始と停止の通知を受け取って、動作をはじめたり、停止する機能を持ちます。IStartStopインターフェースを実装すればよいでしょう。通知を受け取ったときの処理は、両者で異なります。処理的な共通点はほとんどないので、独立したスクリプトで実装することにします。</p>
 
 <h2><a id="h6-2"></a><span class="secno">6.2　</span>状態の管理</h2>
-<p>状態の切り替えを管理するCharacterBehaviourクラスに、IGameStateListenerを実装して、ゲームの進行の通知を受け取ります。</p>
-<p>移動や爆発、コインの取得を、ゲームの通知に連動させる必要があります。<span class="listref"><a href="./create-characters.html#IStartStop">リスト6.1</a></span>のようなインターフェースを定義して、移動やプレイヤーに接触したときの処理に実装します。</p>
+<p>状態の切り替えは、CharacterBehaviourクラスで管理することにします。IGameStateListenerを実装すれば、ゲーム進行の通知を受け取れます。</p>
+<p>動かし方を検討した結果、プレイヤーのように、受け取った移動量に応じて動かすような処理はありませんでした。設定されているパラメータに基づいて、自動的に移動します。状態に応じて、移動の開始と停止を指示できるようにすればよいでしょう。</p>
+<p>爆発やコインの取得も、ゲーム中のみ有効です。移動と同様に、開始と停止が受け取れれば制御できます。</p>
+<p>以上から、<span class="listref"><a href="./create-characters.html#IStartStop">リスト6.1</a></span>のようなインターフェースを定義します。</p>
 <div id="IStartStop" class="code">
 <p class="caption">リスト6.1: IStartStopインターフェース</p>
 <pre class="list"> 1: /// &lt;summary&gt;
@@ -113,63 +132,290 @@
 15: }
 </pre>
 </div>
-<p>CharacterBehaviourクラスは、開始時にIStartStopインターフェースのインスタンスを検索して、配列として保持します。ゲームの開始や停止の通知が届いたら、配列のインスタンスをループして、対応するメソッドを呼び出します。</p>
-<p>CharacterBehaviourクラスは、実装済みのものを用意しました。ProjectビューのAssets/Yoketoru/Scripts/Game/Characterフォルダーにあります。開いて、解説した内容の実装を確認してください。</p>
+<p>CharacterBehaviourクラスの開始時に、IStartStopインターフェースのインスタンスをGetComponentsで取得して、変数に代入してキャッシュします。CharacterBehaviourクラスは実装済みです。<span class="listref"><a href="./create-characters.html#CharacterBehaviour-cash">リスト6.2</a></span>が、該当するコードです。</p>
+<div id="CharacterBehaviour-cash" class="caption-code">
+<p class="caption">リスト6.2: CharacterBehaviourのIStartStopのキャッシュ処理</p>
+<pre class="list">    IStartStop[] startStops;
+
+    void Awake()
+    {
+        startStops = GetComponents&lt;IStartStop&gt;();
+    }
+</pre>
+</div>
+<p>ゲームの開始や停止の通知が届いたら、キャッシュしたインスタンスをループで取り出して、対応するメソッドを呼び出します。InitStateに、<span class="listref"><a href="./create-characters.html#CharacterBehaviour-call">リスト6.3</a></span>のとおり、実装しています。</p>
+<div id="CharacterBehaviour-call" class="caption-code">
+<p class="caption">リスト6.3: CharacterBehaviourのIStartStopの呼び出し処理</p>
+<pre class="list">    void InitState()
+    {
+        if (!state.ChangeState())
+        {
+            return;
+        }
+
+        switch(state.CurrentState)
+        {
+            case State.Play:
+                for (int i=0;i&lt;startStops.Length;i++)
+                {
+                    startStops[i].OnGameStarted();
+                }
+                break;
+
+            case State.End:
+                for (int i = 0; i &lt; startStops.Length; i++)
+                {
+                    startStops[i].OnGameStopped();
+                }
+                break;
+        }
+    }
+</pre>
+</div>
+<p>GetComponentsと、ちょっとしたループで、オブジェクト内の通知システムを構築しました。</p>
 
 <h2><a id="h6-3"></a><span class="secno">6.3　</span>プレイヤーに触れたときの処理</h2>
-<p>決めたことに従って、実装します。プレイヤーと同様に、次のスクリプトも別々に開発できます。</p>
+<p>残りの作業は、次のとおりです。</p>
 <ul>
 <li>爆弾がプレイヤーに接触した処理</li>
 <li>コインがプレイヤーに接触した処理</li>
 <li>跳ね返り移動</li>
 <li>決まったルートの移動</li>
 </ul>
-<p>masterブランチから開発用のブランチを作成して、開発します。</p>
+<p>プレイヤーの開発と同様に、状態管理も含めて、こららも別々に開発できます。</p>
 
 <h3><a id="h6-3-1"></a><span class="secno">6.3.1　</span>爆弾がプレイヤーに接触した処理</h3>
-<p>爆弾は、プレイヤーと接触したことを検知したら、爆発用のゲームオブジェクトをInstantiateして、自分をDestroyします。そして、<a href="./game-system.html">第4章</a>で検討したIGameOverEmitterを使って、ゲームオーバーになったことを、ゲームの進行管理に知らせます。</p>
+<p>爆弾は、プレイヤーと接触したことを検知したら、爆発用のゲームオブジェクトをInstantiateして、自分をDestroyします。ゲームオーバーを要求するには、IGameOverEmitterで定義したGameOverRequestをInvokeします。</p>
 <p>爆発処理は、Attackerクラスに実装します。スクリプトのひな形を、/Assets/Yoketoru/Scripts/Game/Bombフォルダーに用意してあります。指示を読んで、実装してください。</p>
 <ul>
-<li>Projectビューで、Attackerスクリプトをダブルクリックして開く</li>
-<li>OnTriggerEnterに、次の処理を実装してください。</li>
+<li>GitHub Desktopなどで、変更点をコミットして、プッシュする</li>
+<li>Current branchをクリックして、dev-game-overというブランチを作成する。ブランチ元は、masterを選ぶ</li>
+<li>UnityのProjectビューで、Attackerスクリプトをダブルクリックして開く</li>
+<li>クラス定義に、IStartStopインターフェースを加える</li>
+<li>黄色アイコンで、クイック操作が表示されるので、クリックして、インターフェースを実装しますを選択する</li>
+<li>bool型のインスタンス変数isStartedを定義する。falseを代入しておくとよい</li>
+<li>OnGameStartedメソッド内のthrow new System...の行を削除して、isStartedにtrueを代入する</li>
+<li>OnGameStoppedメソッド内のthrow new System...の行を削除して、isStartedにfalseを代入する</li>
 </ul>
+<p>ここまでで、ゲームの開始と停止を状態管理から受け取って、isStartedで確認できる仕組みが実装できました。続いて、OnTriggerEnterに、次の処理を実装して、爆発の処理を実装します。</p>
 <ul>
-<li>相手のタグがPlayer以外なら、何もしない</li>
-<li><code class="inline-code tt">GetComponent&lt;CharacterBehaviour&gt;()</code>で、自分の状態管理のインスタンスを取り出して、IsPlayingがfalseなら、何もしない</li>
+<li>確認用に実装してあったDebug.Logを消す</li>
+<li>相手のタグがPlayer以外なら、処理は不要なので、returnする</li>
+<li>isStartedがfalseなら、爆発は不要なので、returnする</li>
+<li>explosionPrefabを、Instantiateで発生させる。positionは、transform.position。rotationは、Quaternion.identityを指定する</li>
 <li><code class="inline-code tt">GameOverRequest.Invoke();</code>を実行して、ゲームオーバーを要求する</li>
-<li>explosionPrefabを、transform.positionの場所にInstantiateする</li>
 <li><code class="inline-code tt">Destroy(gameObject);</code>で、爆弾を消す</li>
 </ul>
+<p>以上で完了です。プレイヤーの操作が完成していたら、プレイヤーを爆弾にぶつけて、爆発して、ゲームオーバーへ遷移するのを確認してください。</p>
+<p>できたら、コミットして、プッシュします。</p>
 
-<h3><a id="h6-3-2"></a><span class="secno">6.3.2　</span>コイン</h3>
+<h3><a id="h6-3-2"></a><span class="secno">6.3.2　</span>コインがプレイヤーに接触した処理</h3>
 <p>コインを拾う処理を実装します。</p>
-<p>Coinスクリプトの雛形は、実装済みです。OnTriggerEnterを実装します。</p>
+<p>Coinスクリプトの雛形は、実装済みです。UnityのProjectビューから、Assets/Yoketoru/Scripts/Game/Itemフォルダーを開いて、Coinスクリプトを開きます。</p>
+<p>爆発の接触処理と同様の手順で、次の作業をしてください。</p>
 <ul>
-<li>相手のタグがPlayer以外なら、何もしない</li>
-<li><code class="inline-code tt">GetComponent&lt;CharacterBehaviour&gt;()</code>で、自分の状態管理のインスタンスを取り出して、IsPlayingがfalseなら、何もしない</li>
-<li><code class="inline-code tt">CoinGot.Invoke(point);</code>で、ゲームの進行管理にコインを取ったことを知らせる</li>
+<li>masterブランチから、dev-get-coinブランチを作成する</li>
+<li>IStartStopインターフェースを追加して、インターフェースを実装する</li>
+<li>isStarted変数を定義する</li>
+<li>ゲームの開始と停止の通知メソッドに、isStartedの設定を実装する</li>
+</ul>
+<p>次に、OnTriggerEnterの内容を、次の手順で実装します。</p>
+<ul>
+<li>確認用に実装してあったDebug.Logを消す</li>
+<li>相手のタグがPlayer以外なら、処理は不要なので、returnする</li>
+<li>isStartedがfalseなら、爆発は不要なので、returnする</li>
+<li><code class="inline-code tt">CoinGot.Invoke(point);</code>と書く。これで、ゲームの進行管理にコインを取ったことを知らせる</li>
 <li><code class="inline-code tt">Destroy(gameObject);</code>で、コインを消す</li>
 </ul>
-
-<h3><a id="h6-3-3"></a><span class="secno">6.3.3　</span>岩や木箱</h3>
-<p>障害物のオブジェクトについて検討します。障害物は、移動を制限するだけです。自前で処理を実装することも、Rigidbodyの衝突機能を使うこともできます。岩や木箱には、プレイヤーと連携が必要な機能はありません。</p>
-<p>今回は、シンプルにRigidbodyの機能を使うことにします。木箱は押せないので、Is Kinematicを有効にするとよいでしょう。別ページの、岩や木箱の仕様書に、必要事項を記入します。</p>
+<p>以上で完了です。プレイヤーの操作が完成していたら、プレイヤーでコインを取ってください。コインが消えて、得点が入ります。また、すべてのコインを取ったら、クリアします。</p>
+<p>できたら、コミットして、プッシュします。</p>
 
 <h2><a id="h6-4"></a><span class="secno">6.4　</span>移動の実装</h2>
-<p>爆弾、コイン、木箱の移動処理の実装について、検討します。</p>
-
-<h3><a id="h6-4-1"></a><span class="secno">6.4.1　</span>移動の仕方の検討</h3>
-<p>移動には、次の3酒類あります。</p>
+<p>移動には、次の3種類がありました。</p>
 <ul>
 <li>動かない</li>
 <li>決まったルートを、一定速度で巡回する</li>
 <li>等速直線運動で移動して、何かに衝突したら、跳ね返る</li>
 </ul>
-<p>動かないものは、スクリプトをアタッチしなければよさそうです。</p>
+<p>検討したことをもとにして、実装します。</p>
 
-<h2><a id="h6-5"></a><span class="secno">6.5　</span>開発計画</h2>
+<h3><a id="h6-4-1"></a><span class="secno">6.4.1　</span>動かないもの</h3>
+<p>masterブランチから、dev-static-objectブランチを作成して、作業するとよいでしょう。</p>
+<p>動かないものには、スクリプトは不要でした。ProjectビューのAssets/Yoketoru/Prefabsフォルダーを開いて、該当するオブジェクトの設定を、インスペクターで確認してください。</p>
+<ul>
+<li>Bombプレハブをダブルクリックして開いて、次の項目を確認する<ul>
+<li>Layerを、Attackerにする</li>
+<li>Do you want to set layer to Attacker for all child objects as well?の問いには、Noを選択する</li>
+<li>Sphere ColliderのIs Triggerをチェックして、トリガーモードにする</li>
+<li>上書き保存する</li>
+</ul>
+</li>
+<li>Coinプレハブをダブルクリックして開いて、次の項目を確認する<ul>
+<li>TagをCoin、LayerをItemにする</li>
+<li>CoinスクリプトのPointに100を入力して、基本点を100点にする</li>
+<li>Sphere ColliderのIs Triggerをチェックして、トリガーモードにする</li>
+<li>上書き保存する</li>
+</ul>
+</li>
+<li>LargeRockプレハブをダブルクリックして開いて、次の項目を確認する<ul>
+<li>Staticにチェックを入れて、固定オブジェクトにする</li>
+<li>Layerを、Wallにする</li>
+<li>Box ColliderのIs Triggerのチェックを外して、接触を有効にする</li>
+<li>上書き保存する</li>
+</ul>
+</li>
+<li>Rockプレハブをダブルクリックして開いて、次の項目を確認する<ul>
+<li>Staticにチェックを入れて、固定オブジェクトにする</li>
+<li>Layerを、Wallにする</li>
+<li>Shere ColliderのIs Triggerのチェックを外して、接触を有効にする</li>
+<li>上書き保存する</li>
+</ul>
+</li>
+</ul>
+<p>以上で、動かないオブジェクトの設定は完了です。Playして、岩にプレイヤーで突撃して、動かせないことを確認してください。</p>
+<p>完成したら、コミットとプッシュします。</p>
 
-<h2><a id="h6-6"></a><span class="secno">6.6　</span>得点処理</h2>
+<h3><a id="h6-4-2"></a><span class="secno">6.4.2　</span>跳ね返り移動</h3>
+<p>登場する順番的には、ルートの巡回が先なのですが、実装が難しいため、こちらを先に解説します。作業順は、簡単なものを優先するのが効率的です。</p>
+<p>masterブランチから、dev-patrolブランチを作成して、作業するとよいでしょう。</p>
+<p>跳ね返りは、Stage1では出てこないので、このままでは確認しにくいです。Stage2からはじまるように設定します。</p>
+<ul>
+<li>Projectウィンドウから、Assets/Yoketoru/Scenesフォルダーを開いて、GameSystemシーンをダブルクリックして開く</li>
+<li>HierachyウィンドウのGameSystemオブジェクトをクリックして選択する</li>
+<li>Inspectorウィンドウで、Start Stage欄を2に設定する</li>
+</ul>
+<p>Playすると、ゲームがStage2からはじまるようになります。完成するまでのPlay回数が多くなると、タイトルから起動して、カウントダウンを待つのが面倒です。手間は増えますが、開発用のシーンを作成したり、テストランナーを利用する選択肢もあります。このあたりは、開発する内容に応じて、楽そうな方法を選びます。</p>
+<p>跳ね返り移動は、MonoBehaviourを継承して、IStartStopインターフェースを実装します。ルートの巡回移動とは共通点が少ないので、新規スクリプトで作成します。ひな形を、Assets/Yoketoru/Scripts/Game/AutoMoverフォルダーに用意しています。Projectウィンドウから、該当フォルダーを開いて、ReflectionMoverスクリプトをダブルクリックして開いてください。<span class="listref"><a href="./create-characters.html#ReflectionMover-template">リスト6.4</a></span>が、コードです。</p>
+<div id="ReflectionMover-template" class="code">
+<p class="caption">リスト6.4: ReflectionMoverのひな形</p>
+<pre class="list"> 1: using UnityEngine;
+ 2: 
+ 3: /// &lt;summary&gt;
+ 4: /// 反射移動を制御するクラス。
+ 5: /// &lt;/summary&gt;
+ 6: public class ReflectionMover : MonoBehaviour, IStartStop
+ 7: {
+ 8:     [Tooltip(&quot;移動方向&quot;), SerializeField]
+ 9:     Vector3 firstDirection = Vector3.right;
+10:     [Tooltip(&quot;移動速度&quot;), SerializeField]
+11:     float speed = 2;
+12: 
+13:     Rigidbody rb;
+14: 
+15:     void Awake()
+16:     {
+17:         rb = GetComponent&lt;Rigidbody&gt;();
+18:         rb.velocity = Vector3.zero;
+19:     }
+20: 
+21:     private void FixedUpdate()
+22:     {
+23:         // TODO: 速度を維持する
+24:     }
+25: 
+26:     public void OnGameStarted()
+27:     {
+28:         Debug.Log($&quot;{name} 移動開始&quot;);
+29:     }
+30: 
+31:     public void OnGameStopped()
+32:     {
+33:         Debug.Log($&quot;{name} 移動停止&quot;);
+34:     }
+35: }
+</pre>
+</div>
+<p>ReflectionMoverクラスは、MonoBehaviourを継承して、IStartStopインターフェースを実装しています。</p>
+<p>最初の移動方向をfirstDistance、速度をspeedで定義しています。これらは、Inspectorウィンドウで設定できます。方向と速度を分けているのは、設定を簡単にするためです。</p>
+<p>Rigidbodyのキャッシュ用の変数としてrbを定義して、Awakeで取得と、停止する設定をしています。</p>
+<p>あとは、実装予定のメソッドを定義しています。</p>
+<p>跳ね返り移動は、とても簡単です。ゲームが開始したときに初速を設定して、ゲームが停止したときに移動を止めます。</p>
+<p>理屈的にはこれだけでよいのですが、ゲーム用の物理エンジンは、精度を犠牲にして、処理速度を優先するものが多くあります。Unityの物理エンジンも同様です。誤差から、衝突するごとに徐々に速くなったり、逆に、遅くなったりします。これを防ぐために、方向はそのままで、速さをspeedに保つ処理を、FixedUpdateに実装します。</p>
+<p>また、一定の速度より遅い場合、跳ね返らないようにする設定があります。この設定がないと、別のオブジェクトに載っているオブジェクトが、数値の誤差によって、いつまでも跳ね続ける不具合が起きます。それをなくすための工夫です。しかし、今回のように、跳ね返って欲しいゲームの場合、この設定が悪い方向に作用します。薄い角度で壁にぶつかると、跳ね返らずに、壁にくっついて動くようになります。ブロック崩しなどを作っていると、この現象に遭遇します。この設定を、無効にする必要があります。</p>
+<p>以上から、実装と設定をします。</p>
+<ul>
+<li>OnGameStartedと、OnGameStoppedを実装する<ul>
+<li>動かさないと、他の設定の確認ができないので、まずはOnGameStartedを実装する</li>
+<li>停止はすぐに実装できるので、同時に実装する</li>
+</ul>
+</li>
+<li>動作確認<ul>
+<li>しばらく実行して、爆弾やコインが加速したり、壁に張り付く症状を確認する</li>
+</ul>
+</li>
+<li>跳ね返り設定<ul>
+<li>設定で対策できる</li>
+</ul>
+</li>
+<li>動作確認<ul>
+<li>壁に張り付かなくなるのを確認する</li>
+</ul>
+</li>
+<li>速度の維持の実装<ul>
+<li>最後に、FixedUpdateに、速度を維持する処理を実装する</li>
+</ul>
+</li>
+<li>動作確認<ul>
+<li>すべてが、期待どおりに動くことを確認する</li>
+</ul>
+</li>
+</ul>
+<p>この手順で進めます。</p>
+<p>OnGameStartedの実装は、次のとおりです。</p>
+<ul>
+<li>Debug.Logを削除する</li>
+<li>rb.velocityに、speed * firstDirection.normalizedを代入する</li>
+</ul>
+<p>firstDirectionは、長さが1とは限りません。normalizedを参照することで、単位ベクトルを求めて、それにspeedをかけます。</p>
+<p>OnGameStoppedは、次のとおりです。</p>
+<ul>
+<li>Debug.Logを削除する</li>
+<li>rb.velocityに、Vector3.zeroを代入する</li>
+</ul>
+<p>Playして、動作を確認してください。Inspectorで設定されているスピードと方向にしたがって、動き始めます。ただし、壁に衝突しても、期待する方向には跳ね返らず、動きが遅くなります。また、角に達すると、止まってしまいます。これを直していきます。</p>
+<p>跳ね返りの設定は、Project SettingsのPhysicsで設定します。</p>
+<ul>
+<li>Editメニューから、Project Settingsを選ぶ</li>
+<li>Physicsを選ぶ</li>
+<li>Bounce Thresholdを0にする</li>
+</ul>
+<p>Bounce Thresholdが、跳ね返るかを判定する閾値（しきいち）です。デフォルトの2だと、速度が2以下では跳ね返らなくなります。0にすると、遅くても跳ね返るようになります。</p>
+<p>Playして、動作を確認してください。壁で跳ね返るようになります。ただ、角度が期待と違います。これは、衝突したときの摩擦と跳ね返り係数が未設定なためです。</p>
+<p>摩擦と跳ね返り係数は、PhysicMaterialで設定します。Projectウィンドウの+から作成できますが、今回は用意してあります（<span class="imgref"><a href="./create-characters.html#reflection-material">図6.1</a></span>）。</p>
+<div id="reflection-material" class="image">
+<img src="images/create-characters/reflection-material.png" alt="跳ね返り用のPhysicMaterial" />
+<p class="caption">
+図6.1: 跳ね返り用のPhysicMaterial
+</p>
+</div>
+<p>Dynamic Friction（動摩擦係数）と、Static Friction（静摩擦係数）は、0に設定します。これは、接触したときに、オブジェクトが回転しないようにするためです。回転すると、回転に力を使ってしまい、跳ね返りが弱くなります。</p>
+<p>Bounciness（跳ね返り係数）は、1に設定します。これは、完全に跳ね返すための設定です。0だと、跳ね返りません。</p>
+<p>物理の世界では、衝突した相手のPhysic Materialとの組み合わせで、跳ね返り方が決まります。今回のようなゲームの世界では、こちらの設定を優先したい場合があります。そのために、Friction CombineをMinimumにして、抵抗は小さい方を採用するようにします。また、Bounce CombineをMaximumに設定して、跳ね返り係数は大きい方を採用するようにします。これで、抵抗を0、跳ね返りを1に固定します。</p>
+<p>Reflectマテリアルを、BombReflectionプレハブと、CoinReflectionプレハブのColliderにアタッチします。</p>
+<ul>
+<li>Projectウィンドウで、Assets/Yoketoru/Prefabsフォルダーを開く</li>
+<li>Projectウィンドウで、Assets/Yoketoru/PhysicMaterialsフォルダーを開く</li>
+<li>Reflectマテリアルをドラッグして、BombReflectionプレハブのSphere ColliderのMateiral欄にドロップして（<span class="imgref"><a href="./create-characters.html#set-physic-material">図6.2</a></span>）、アタッチする</li>
+</ul>
+<div id="set-physic-material" class="image">
+<img src="images/create-characters/set-physic-material.png" alt="Reflectマテリアルをアタッチする" />
+<p class="caption">
+図6.2: Reflectマテリアルをアタッチする
+</p>
+</div>
+<ul>
+<li>同様に、Reflectマテリアルをドラッグして、CoinReflectionプレハブのSphere ColliderのMateiral欄にドロップして、アタッチする</li>
+</ul>
+<p>Playして、動作を確認してください。納得のできる跳ね返り方になります。</p>
+<p>しばらく見ていると、速度が遅くなったり、速くなったりします。これは、Physicsの誤差によるものです。これを避けるために、FixedUpdateで、速度を固定する処理を入れます。</p>
+<ul>
+<li>floatの変数currentSpeedを定義して、rb.velocity.magnitudeを代入する。これで、現在の速さが分かる</li>
+<li>currentSpeedがほぼ0なら、returnして何もしない。ほぼ0かどうかは、Mathf.Approximatelyで判定する</li>
+<li>rb.velocityに、speedをrb.velocityの単位ベクトルにかけた値を代入する。これで、現在の移動方向に、speedの速さで動くように、速度を再設定する</li>
+</ul>
+<p>Playして、様子を確認してください。速さが変わらなければ、実装完了です。コミットして、プッシュします。</p>
+
+<h3><a id="h6-4-3"></a><span class="secno">6.4.3　</span>決まったルートの巡回</h3>
       </div>
       <nav class="book-navi book-prev">
                 <a href="create-player.html">
