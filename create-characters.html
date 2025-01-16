@@ -244,14 +244,11 @@
 <p>動かないものには、スクリプトは不要でした。ProjectビューのAssets/Yoketoru/Prefabsフォルダーを開いて、該当するオブジェクトの設定を、インスペクターで確認してください。</p>
 <ul>
 <li>Bombプレハブをダブルクリックして開いて、次の項目を確認する<ul>
-<li>Layerを、Attackerにする</li>
-<li>Do you want to set layer to Attacker for all child objects as well?の問いには、Noを選択する</li>
 <li>Sphere ColliderのIs Triggerをチェックして、トリガーモードにする</li>
 <li>上書き保存する</li>
 </ul>
 </li>
 <li>Coinプレハブをダブルクリックして開いて、次の項目を確認する<ul>
-<li>TagをCoin、LayerをItemにする</li>
 <li>CoinスクリプトのPointに100を入力して、基本点を100点にする</li>
 <li>Sphere ColliderのIs Triggerをチェックして、トリガーモードにする</li>
 <li>上書き保存する</li>
@@ -278,6 +275,8 @@
 <h3><a id="h6-4-2"></a><span class="secno">6.4.2　</span>跳ね返り移動</h3>
 <p>登場する順番的には、ルートの巡回が先なのですが、実装が難しいため、こちらを先に解説します。作業順は、簡単なものを優先するのが効率的です。</p>
 <p>masterブランチから、dev-patrolブランチを作成して、作業するとよいでしょう。</p>
+
+<h4><a id="h6-4-2-1"></a>ステージ2からはじまるように設定する</h4>
 <p>跳ね返りは、Stage1では出てこないので、このままでは確認しにくいです。Stage2からはじまるように設定します。</p>
 <ul>
 <li>Projectウィンドウから、Assets/Yoketoru/Scenesフォルダーを開いて、GameSystemシーンをダブルクリックして開く</li>
@@ -285,6 +284,8 @@
 <li>Inspectorウィンドウで、Start Stage欄を2に設定する</li>
 </ul>
 <p>Playすると、ゲームがStage2からはじまるようになります。完成するまでのPlay回数が多くなると、タイトルから起動して、カウントダウンを待つのが面倒です。手間は増えますが、開発用のシーンを作成したり、テストランナーを利用する選択肢もあります。このあたりは、開発する内容に応じて、楽そうな方法を選びます。</p>
+
+<h4><a id="h6-4-2-2"></a>ひな形の確認</h4>
 <p>跳ね返り移動は、MonoBehaviourを継承して、IStartStopインターフェースを実装します。ルートの巡回移動とは共通点が少ないので、新規スクリプトで作成します。ひな形を、Assets/Yoketoru/Scripts/Game/AutoMoverフォルダーに用意しています。Projectウィンドウから、該当フォルダーを開いて、ReflectionMoverスクリプトをダブルクリックして開いてください。<span class="listref"><a href="./create-characters.html#ReflectionMover-template">リスト6.4</a></span>が、コードです。</p>
 <div id="ReflectionMover-template" class="code">
 <p class="caption">リスト6.4: ReflectionMoverのひな形</p>
@@ -329,10 +330,12 @@
 <p>最初の移動方向をfirstDistance、速度をspeedで定義しています。これらは、Inspectorウィンドウで設定できます。方向と速度を分けているのは、設定を簡単にするためです。</p>
 <p>Rigidbodyのキャッシュ用の変数としてrbを定義して、Awakeで取得と、停止する設定をしています。</p>
 <p>あとは、実装予定のメソッドを定義しています。</p>
+
+<h4><a id="h6-4-2-3"></a>実装方法と手順の検討</h4>
 <p>跳ね返り移動は、とても簡単です。ゲームが開始したときに初速を設定して、ゲームが停止したときに移動を止めます。</p>
 <p>理屈的にはこれだけでよいのですが、ゲーム用の物理エンジンは、精度を犠牲にして、処理速度を優先するものが多くあります。Unityの物理エンジンも同様です。誤差から、衝突するごとに徐々に速くなったり、逆に、遅くなったりします。これを防ぐために、方向はそのままで、速さをspeedに保つ処理を、FixedUpdateに実装します。</p>
 <p>また、一定の速度より遅い場合、跳ね返らないようにする設定があります。この設定がないと、別のオブジェクトに載っているオブジェクトが、数値の誤差によって、いつまでも跳ね続ける不具合が起きます。それをなくすための工夫です。しかし、今回のように、跳ね返って欲しいゲームの場合、この設定が悪い方向に作用します。薄い角度で壁にぶつかると、跳ね返らずに、壁にくっついて動くようになります。ブロック崩しなどを作っていると、この現象に遭遇します。この設定を、無効にする必要があります。</p>
-<p>以上から、実装と設定をします。</p>
+<p>ここまでの話しを踏まえて、実装と設定の手順を考えます。</p>
 <ul>
 <li>OnGameStartedと、OnGameStoppedを実装する<ul>
 <li>動かさないと、他の設定の確認ができないので、まずはOnGameStartedを実装する</li>
@@ -360,7 +363,8 @@
 </ul>
 </li>
 </ul>
-<p>この手順で進めます。</p>
+
+<h4><a id="h6-4-2-4"></a>OnGameStartedとOnGameStoppedの実装</h4>
 <p>OnGameStartedの実装は、次のとおりです。</p>
 <ul>
 <li>Debug.Logを削除する</li>
@@ -373,6 +377,8 @@
 <li>rb.velocityに、Vector3.zeroを代入する</li>
 </ul>
 <p>Playして、動作を確認してください。Inspectorで設定されているスピードと方向にしたがって、動き始めます。ただし、壁に衝突しても、期待する方向には跳ね返らず、動きが遅くなります。また、角に達すると、止まってしまいます。これを直していきます。</p>
+
+<h4><a id="h6-4-2-5"></a>跳ね返り設定</h4>
 <p>跳ね返りの設定は、Project SettingsのPhysicsで設定します。</p>
 <ul>
 <li>Editメニューから、Project Settingsを選ぶ</li>
@@ -406,8 +412,10 @@
 <ul>
 <li>同様に、Reflectマテリアルをドラッグして、CoinReflectionプレハブのSphere ColliderのMateiral欄にドロップして、アタッチする</li>
 </ul>
-<p>Playして、動作を確認してください。納得のできる跳ね返り方になります。</p>
-<p>しばらく見ていると、速度が遅くなったり、速くなったりします。これは、Physicsの誤差によるものです。これを避けるために、FixedUpdateで、速度を固定する処理を入れます。</p>
+<p>Playして、動作を確認してください。納得のできる跳ね返り方になります。しばらく見ていると、速度が遅くなったり、速くなったりします。これを修正します。</p>
+
+<h4><a id="h6-4-2-6"></a>速度の維持の実装</h4>
+<p>速度が変わるのは、Physicsの誤差によるものです。物理エンジンにすべての制御を任せて作れるゲームは、意外とありません。多かれ少なかれ、スクリプトでの調整が必要になります。今回は、FixedUpdateで、速度を再設定するようにします。</p>
 <ul>
 <li>floatの変数currentSpeedを定義して、rb.velocity.magnitudeを代入する。これで、現在の速さが分かる</li>
 <li>currentSpeedがほぼ0なら、returnして何もしない。ほぼ0かどうかは、Mathf.Approximatelyで判定する</li>
@@ -416,6 +424,109 @@
 <p>Playして、様子を確認してください。速さが変わらなければ、実装完了です。コミットして、プッシュします。</p>
 
 <h3><a id="h6-4-3"></a><span class="secno">6.4.3　</span>決まったルートの巡回</h3>
+<p>決まったルートの巡回移動を実装します。まずは、機能を書き出します。</p>
+<ul>
+<li>Inspectorウィンドウで、次の項目を設定できるようにする<ul>
+<li>移動速度</li>
+<li>巡回する座標を並べたウェイポイント</li>
+<li>最後のウェイポイントに達したら、往復するように動くPingPongと、先頭のウェイポイントに戻るLoopの設定をもつ</li>
+<li>スタート直後に目指すウェイポイントのインデックス。通常は1だが、調整しやすくするための設定</li>
+</ul>
+</li>
+<li>ゲームオブジェクトを選択したときに、ウェイポイントをギズモで表示する</li>
+<li>ゲームが開始するまでは動かない</li>
+<li>ゲームが停止したら止める</li>
+<li>プレイヤーからは押せないので、Is Kinematicを有効にして、MovePositionで移動させる</li>
+<li>移動の流れは、ひな形にコメントで記載</li>
+</ul>
+<p>これらを実装する手順を検討します。</p>
+<ol>
+<li>ゲームオブジェクトの設定の確認と修正</li>
+<li>変数定義と、ギズモの描画（実装済み）</li>
+<li>ゲームの開始と停止の実装。移動をデバッグ表示</li>
+<li>次のウェイポイントへの移動を実装</li>
+<li>目指すウェイポイントの更新を実装</li>
+<li>端に達したら、PingPongで戻す処理の実装</li>
+<li>端に達したら、Loopさせる処理の実装</li>
+</ol>
+<p>今回の処理は、やや複雑なので、段階を経て実装します。これまでと同じく、masterブランチから、dev-patrolブランチを作成してから作業をするとよいでしょう。</p>
+
+<h4><a id="h6-4-3-1"></a>ゲームオブジェクトの設定の確認と修正</h4>
+<p>巡回移動は、黄色爆弾、銀のコイン、木箱です。これらのゲームオブジェクトの設定を確認します。</p>
+<ul>
+<li>Projectウィンドウで、Assets/Yoketoru/Prefabsフォルダーを開く</li>
+<li>BombPatrolプレハブを選択する</li>
+<li>Inspectorウィンドウで、次の項目を確認する<ul>
+<li>RigidbodyのIs Kinematicをチェックする。これで、物理的な動作から、機械的な動作になって、他のオブジェクトから押せなくなる</li>
+<li>Sphere ColliderのIs Triggerにチェックする。これで、プレイヤーの移動を妨げずに触れるようになる</li>
+</ul>
+</li>
+<li>CoinPatrolプレハブを選択して、BombPatrolと同じ項目を確認する</li>
+<li>Crateプレハブを、ダブルクリックして開く</li>
+<li>Inspectorウィンドウで、次の項目を確認する<ul>
+<li>LayerをWallにする。これで、プレイヤーと接触対象になる</li>
+<li>RigidbodyのIs Kinematicをチェックする</li>
+<li>Hierarchyウィンドウで、子オブジェクトのCubeを選択する</li>
+<li>LayerをWallにする</li>
+<li>Box ColliderのIs Triggerのチェックを外す。これで、プレイヤーに衝突するようになる</li>
+</ul>
+</li>
+<li>設定を保存する</li>
+</ul>
+<p>以上で、オブジェクトの設定は完了です。</p>
+<p>ここで設定した爆弾とコインは、コライダーをIs Triggerにしたので、跳ね回る爆弾やコインと接触しません。接触させたい場合は、跳ね回るオブジェクトの設定を参考に、設定してください。</p>
+
+<h4><a id="h6-4-3-2"></a>ウェイポイントの場所をギズモで表示</h4>
+<p>これは、すでにひな型として実装済みです。Projectウィンドウで、Assets/Yoketoru/Scenes/Stagesフォルダーを開いて、Stage2を、Hierarchyウィンドウにドラッグ＆ドロップして開きます。</p>
+<p>Stage2シーンにある<code class="inline-code tt">Crate (1)</code>などをクリックして選択してください。Scenesビューを見ると、右の木箱の場所と、少し下に、赤い丸が表示されます（<span class="imgref"><a href="./create-characters.html#waypoint-gizmos">図6.3</a></span>）。これが、ウェイポイントの場所を示すギズモです。</p>
+<div id="waypoint-gizmos" class="image">
+<img src="images/create-characters/waypoint-gizmos.png" alt="ウェイポイントのギズモ" />
+<p class="caption">
+図6.3: ウェイポイントのギズモ
+</p>
+</div>
+<p>他のCrateや、ItemPatrolを選択すると、それぞれのウェイポイントが確認できます。また、Inspectorウィンドウで、Way Pointsを変更すると、ギズモの位置が変わります。</p>
+<p>OnDrawGizmosSelectedメソッドが、このギズモを描画するコードです。便利なので、ご活用ください。</p>
+
+<h4><a id="h6-4-3-3"></a>ゲームの開始と停止の実装</h4>
+<p>ゲームの開始と停止の処理を検討します。ルートの巡回は、現在の座標から、目的のウェイポイントへ移動します。FixedUpdateごとに、MovePositionで移動させるので、その処理をしなければ移動しません。</p>
+<p>そこで、bool型の変数isStartedを定義します。ゲームが開始したら、trueにして、移動を開始するようにします。FixedUpdateの最初で、isStartedを確認して、移動するか判断します。ゲームが停止したら、isStartedをfalseにします。</p>
+<p>移動中は、Debug.Logで何か表示するようにします。移動の実装は、手間がかかりそうなので、切り分けて開発する工夫をします。</p>
+<ul>
+<li>Projectウィンドウで、Assets/Yoketoru/Scripts/Game/AutoMoverフォルダーを開く</li>
+<li>開いたフォルダーにあるWayPointMoverスクリプトをダブルクリックして、開く</li>
+<li>インスタンス変数として、bool型のisStartedを定義する。初期値にfalseを代入しておくと安全</li>
+<li>OnGameStartedメソッドのDebug.Logを消して、isStartedをtrueにする処理を書く</li>
+<li>OnGameStoppedメソッドのDebug.Logを消して、isStartedをfalseにする処理を書く</li>
+<li>FixedUpdateメソッドの最初に、isStartedがfalseなら、returnする処理を書く</li>
+<li>次の行に、Debug.Logで、「移動」と出力する</li>
+</ul>
+<p>できたら、Playして動作を確認してください。カウントダウンが終わってから「移動」が表示されて、ゲームオーバーやクリアしたら、ログ表示が停止すれば成功です。</p>
+
+<h4><a id="h6-4-3-4"></a>次のウェイポイントへの移動を実装</h4>
+<p>移動の開始と停止ができたら、動きを実装します。これも、段階を踏んで進めましょう。</p>
+<ul>
+<li>FixedUpdateメソッドの「移動ベクトルを求める」の下に、Vector3型の変数toTargetを定義して、次のウェイポイントの座標から、現在の座標を引く。次のウェイポイントは、wayPoints[nextIndex]で得られる。現在の座標は、transform.positionで得られる</li>
+<li>「目的地までの残りの距離を求める」の下に、float型の変数distanceを定義して、toTargetの長さを代入する。toTargetの長さは、toTarget.magnitudeで求められる</li>
+<li>「1回分の移動距離を求める」の下に、float型の変数stepを定義して、speed * Time.fixedDeltaTimeを代入する。1秒あたりの移動距離であるspeedに、経過秒数Time.fixedDeltaTiimeをかけると、1回分の移動距離が求まる</li>
+</ul>
+<p>到着の確認と、目的地の切り替えは、次のステップで実装します。今回は、このまま移動させます。</p>
+<ul>
+<li>「到着しないなら、1回分の距離を移動」の下に、Vector3型の変数moveを定義して、stepをtoTargetの単位ベクトルにかけた値を代入する。toTargetの単位ベクトルは、toTarget.normalizedで求められる</li>
+<li>最後の行で、rb.MovePositionメソッドを呼び出す。引数には、rb.positionに、moveを足した値を渡す</li>
+</ul>
+<p>Playして、カウントダウンが終わると、木箱や銀のコインが動きます。最初の目的地に到着して、停止したら成功です。</p>
+
+<h4><a id="h6-4-3-5"></a>目指すウェイポイントの更新を実装</h4>
+
+<h4><a id="h6-4-3-6"></a>端に達したら、PingPongで戻す処理の実装</h4>
+
+<h4><a id="h6-4-3-7"></a>端に達したら、Loopさせる処理の実装</h4>
+
+<h4><a id="h6-4-3-8"></a>決まったルートの巡回のまとめ</h4>
+<p>ルートの巡回は、やや難しい処理でした。このような処理は、いきなりすべてを実装しようとせずに、分割するのが開発のコツです。Debug.Logを活用すると、実際に処理を実装していなくても、プログラムが正しく動作していることが確認できます。</p>
+
+<h2><a id="h6-5"></a><span class="secno">6.5　</span>キャラ実装のまとめ</h2>
       </div>
       <nav class="book-navi book-prev">
                 <a href="create-player.html">
